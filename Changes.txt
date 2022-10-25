@@ -1,5 +1,11 @@
 Changes.txt
 
+25-10-2022 version 0.4.2-rpi
+- Remove support of various features to be able to be able to compile with
+  ARM architecture of Raspberry PI. This version should only be used in 
+  that case.
+  Features removed : Telemetry, WX, Remote command, Satellite tracker.
+
 05-12-2009 version 0.4.0
 - With Ubuntu 9.04 a bug sufaced in the satellite tracker code. Data was
   written outside the allocated space. It had no ill effects before but

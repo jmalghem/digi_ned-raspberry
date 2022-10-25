@@ -18,7 +18,7 @@
 #  In order to use the radio, you need a license from the communications
 #  authority of your country.
 #
-DIGI_NED = 0.4.2
+DIGI_NED = 0.4.2-rpi
 
 #
 # This Makefile is only used on Linux and Unix lookalike systems. The DOS
