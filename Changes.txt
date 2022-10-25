@@ -1,0 +1,1569 @@
+Changes.txt
+
+05-12-2009 version 0.4.0
+- With Ubuntu 9.04 a bug sufaced in the satellite tracker code. Data was
+  written outside the allocated space. It had no ill effects before but
+  is definately a bug. Thanks to Michael Lussier for reporting it and
+  helping to find the cause.
+- Also in the sattracker there was a long standing wish from Bob Bruninga
+  to change the format of the satellite objects. The downlink frequency
+  has now MHz attached to it so newer Kenwood receivers can tune to the
+  QRG directly, the second frequency has the word "up". Elevation data
+  is gone to make room. On the second screen (not visible on the TH-D7 but
+  visible on the D700) there is the AMSAT designation and HI or LOW for
+  elevation. HI means 20 degrees or more, LOW means below 20 degrees
+  elevation.
+- Updated digi_ned.tle and digi_ned.sat.
+  Note: only 12 satellites have current data. Others do not seem to be
+  updated anymore. I have no idea what satellites to include, but at least
+  we have de "APRS" satellites ISS, NO44, GO32 and AO51.
+- New command for sat users: "sat now". Shows sats that are in range now
+  Thanks to Michael Lussier for the suggestion.
+- Moved the old digi_ned.ini to an appendix section in the digi_ned.txt
+  manual. The supplied digi_ned.ini is now conform the new paradigm.
+- WIDE2-1 as first unused call in the path is now recognised as a
+  local station (instead of 1-hop already done).
+
+06-05-2007 version 0.3.9
+- With the new GCC 4.x compiler a bug in extracting the location surfaced
+  that was not noticable with older compilers. I have not seen the problem
+  with DOS or Cygwin either, but is is definately a bug. This was found
+  by Josh, AB9FT. Thanks Josh for reporting it!
+- Changed digi_new.ini, the rulefile for the new paradigm. It does not
+  convert high hopcount WIDEn-N to their WIDE2-N equivalent but ignores
+  high hopcount WIDEn-N paths now.
+
+25-01-2006 version 0.3.8
+- More AGWPE interface changes
+  1) Disconnect was not clean enough, on some systems connections accumutated
+     in AGWPE making the AGWPE machine crash under the big number of
+     connections.
+  2) There is now a probe packet every 30 seconds to see if the connection
+     to AGWPE is alive in both directions, only after the probe packet is
+     not answered by AGWPE DIGI_NED re-builds the connection.
+  3) DIGI_NED now registers the callsign so when you look in AGWPE's About
+     box and click "Programs" you will see DIGI_NED als callsign for the 
+     connection that DIGI_NED uses.
+  Thanks to Tony Hunt (VK5AH) for reporting it and testing different solutions
+  (since my system didn't have the accumuating connectons problem and therfore
+  I could test it myself).
+- The windows binary is now "stripped" (removed information that is only used
+  for debugging), it made the binary a lot smaller...
+- Keyboard input ALT+key works now for the Windows version (ESC followed by
+  key also works under Windows, just like Linux).
+- When starting a program from a query under windows (Cygwin) the external
+  program will be run by COMMAND.COM or CMD.EXE (or whatever COMSPEC is set
+  to) instead of /bin/sh. This way external commands behave like DOS or
+  Windows and not like Unix/Linux anymore. The provided sample in Sample.zip
+  now works, provided qbasic is also present on the system (I copied mine
+  from an old DOS installation, it works find under XP but may have
+  problems with long pathnames).
+- Changed Makefile to use "gccmakedep" instead of "makedepend". The latter
+  is no longer available on newer Linux systems. Thanks to Jeff Nast
+  (KC0MKS) for reporting this. I hope gccmakedep is available on all
+  the Linux systems, it is present on Cygwin.
+
+04-09-2005 version 0.3.7
+- AGWPE interface changed:
+  1) AGWPE may stop sending raw data for some reason. DIGI_NED now has a
+     30 second timer, if in the last 30 seconds no data is received, then
+     DIGI_NED re-builds the connection to AGWPE.
+  2) Recovery after connection loss didn't work always. This has been
+     improved and tested on various systems.
+  A big thanks to Hasan Schiers, N0AN, for performing an extensive real-life
+  test of DIGI_NET with the AGWPE interface with an operational digipeater.
+- Added 2 new sample rulefiles:
+  digi_new.ini: rulefile for the new paradigm
+                (see the APRS addendum's at Bob Bruninga's web-page,
+                "http://web.usna.navy.mil/~bruninga/aprs.html")
+  digi_nsr.ini: rulefile for Pete Loveall's (AE5PL) non-source routing
+                idea.
+- Updated digi_ned.tle and digi_ned.sat
+
+14-03-2005 version 0.3.6
+- Fixed 2 warnings after using a more pedantic settings for GCC
+- Added KISS and AGW interface, now DIGI_NED compiles clean under Cygwin!
+  In in the Makefile you can now choose 4 types of interfaces:
+  - Old AX25 utils - I still use this on my 486 laptop with RedHat 5.2
+  - New AX25 utils - This should be used with the current Linux kernels
+  - KISS           - Talks directly to a KISS TNC via a /dev/tty* node
+  - AGWPE          - Talks to the network to AGWPE
+  Edit the "Makefile" to select the interface you want.
+  All types work on Linux; KISS and AGWPE also work on Cygwin.
+  The DOS version of course still uses the AX25_MAC TSR, for Windows you
+  can use a version under Cygwin (see http://www.cygwin.org/).
+  To get Cygwin running, please look at the instructions provided for
+  Xastir (www.xastir.org). If you have Xastir running, compiling DIGI_NED
+  should not be a problem. Review the documentation who to proceed from
+  here, the installation is much like Linux for Cygwin.
+- AGWPE in DIGI_NED does not support passing a login+password (yet).
+- Added a little text to digi_ned.txt for the KISS and AGWPE interfaces.
+
+09-01-2005 version 0.3.5
+- VIA block was looking for thrid party headers in non UI packets, this is
+  not okay since this may block other frames with no data due to left over
+  data in memory. Now VIA block is only checked for UI packets with pid=0xf0
+  (Note: not for 0x77 since opentrack does not use this kind or third party
+  headers). Thanks to Tony, VK5AH, for reporting it and testing the solution.
+- New rule "enable_ptt_command:", when set to 0 then the owner can no longer
+  send the !ptt command to remotely enable or disable transmissions of the
+  digi. In some area's this feature was abused by uncooperative users.
+  Default use of this command is enabled to stay compatible with older
+  digi_ned.ini files. Reqested by Paolo, IN3EJX.
+- New rule "enable_out_command:", when set to 0 then the owner can no longer
+  send the !out command to remotely change signals on the LPT port of the. 
+  digi. Default use of this command is enabled to stay compatible with older
+  digi_ned.ini files.
+- Refreshed digi_ned.sat and digi_ned.tle with new kepler elements.
+- Refreshes "whois" example.
+
+30-08-2004 version 0.3.4
+- Language error, ".. already send recently" in dx.c should use "sent", not
+  "send". Correction provided by David, ZL3AI. Thanks David!
+- Fixed error in the digi_ned.txt manual, rule "Ssid_Ignore_Data:" should be
+  "Ssid_Ignore_Prefix:" as it is in de code and in in the digi_ned.ini file.
+  Thanks to PA5JB for reporting this.
+- The "send:" and "beacon:" rules will not transmit empty lines that are
+  present in the beacon file anymore.
+  Thanks to PA5JB for reporting this.
+- Use of "all" in "dx_times:" is not case-sensitive anymore.
+  Thanks to PA5JB for reporting this.
+- The rule "digi_ssid:" did call replacement automatically, this gave a
+  problem when you want to make a rule to convert from digipeating on SSID to
+  the WIDEn-N equivalent. Call replacement is now removed for this rule, to
+  convert from digipeating on SSID to WIDEn-N digipeating you can use the
+  following rules, for example if the destination SSID is 2:
+  On the first hop add the own call and WIDEn_N, where "N" is one lower than
+  "n" to indicate that one hop is used:
+    digito: all *-2 all 0 add DIGI_CALL,WIDE2-1
+  On subsequent hops only change the SSID in a WIDEn-N equivaltent. The start
+  value of "n" is unknown, but we know that at least 2 hops are used (one by
+  somebody else and one by us):
+    digissid: all *-2 all 0 add2 WIDE2
+  I have added these as comment in the default digi_ned.ini for the case
+  when your surrounding digis do not have digipeating on destination SSID.
+  Thanks to PA5JB for reporting this.
+- Removed a "digiend:" rule that was specific for my own location and
+  was already obsolete. Also changed the text in digi_ned.txt that referred
+  to this specific rule in the FAQ section.
+- New rule "opentrac_enable:", DIGI_NED now digipeats Opentrac packets,
+  with "opentrac_enable:" you can disable this feature (default enabled).
+  Only rule based digipeating is supported for Opentrac, there is no
+  specific Opentrac support (yet) such as for example the Trace element.
+- The example "dx_portname:" is now a frequency in kHz.
+- The default DIGI_NED.INI now uses the "digifirst:"/"diginext:" rules
+  for WIDEn_N type calls to show where the packet entered the APRS system.
+- Changed "preempt_keep:" to retain all calls in the list when preempting,
+  except the ones in "preempt_never_keep:". The dutch example is now commented
+  out. Since the dutch authority now hands out new prefixes the example has
+  been extended to keep every call from "PA" up to and including "PI".
+- The "preempt:" structure that was used to avoid use of RELAY at other
+  positions in the via list is now obsolete; RELAY uses the "digifirst:"
+  rule so it only accepts RELAY at the beginning of the via list.
+- Additional change to "via_block:" rule, the optional port number is now
+  valid for both FROM this port and TO this port. The optional port number
+  supplied with "block:" and "msg_block:" only blocks packets FROM that port
+  (these are not changed).
+- LOCAL/REMOTE detection failed then the via path contains a call like
+  WIDE-6. The subsequent WIDE-5, WIDE-4... etc all looked direct but
+  are not giving a lot of bogus DX messages. Now calls like this are treated
+  as always indirect. This problem now became obvious since TinyTrak-3 seem
+  to encourage use of these paths...
+  Reported by PA5JB, thanks Jaap!
+- Rules "block:", "via_block:" and "msg_block:" now allow an optional port
+  number parameter (port numbers separated by commas or "all"). Only packets
+  from those ports with the specified calls are blocked. (for example:
+  via_block: 1,3 CALL). When no port is specified then "all" is assumed to be
+  backwards compatible.
+- Changed the values in AX25_MAC.INI, the defaults for PERSIST and SLOTTIME
+  are now 255 and 0, causing immediate transmission as soon as the channel
+  is clear. Transmissions of digi's will overlap but this is the intended
+  behaviour. For more information look at the APRSSIG at www.tapr.org where
+  this was discussed in depth. If you use DIGI_NED on a shared channel with
+  non APRS traffic (lap QRG), or also use other applications on the same port
+  (e.g. in combination with Xastir on Linux) then don't forget to change
+  these values back to less agressive values (e.g. 64 and 10).
+  Note: values for up to 4 channels are now entered, they are all set to use
+  a TXDelay of 250ms, do not forget to adjust this to suit your TRX.
+- When compiling without _SATTRACKER_ the variable "zone" was not defined.
+- Changed way to output under DOS from direct screen-writes to console-I/O.
+  This allows redirection of the DIGI_NED output to a serial line for single
+  board computers.
+- When using a wildcard in a "preempt:" rule without specifying a replacement,
+  the call with the wildcard was copied to the "via" list, instead of the
+  call from the incomming packet. Found by Pascal Rapharin, F5JSD, thanks for
+  the report!
+- Refreshed whois.db in the Sample.dos and Sample.lnx directories
+- Implementation of "wx_var:" of type "SUM" changed. If the counter for
+  which SUM is adding the differences is increased more than 32 since the
+  previous measurement then the value is ignored. This solves a problems
+  when a counter takes a step backward for some odd reason, previously this
+  was seen as a 255 increase. Since every 10 seconds the telemetry port is
+  sampled the highest counting rate for SUM is about 3 pulses per second
+  (was 25). Since rainmeters, for which this was designed, have to fill up
+  with water before giving a counting pulse it doesn't look like a problem
+  to have this restriction.
+- New version of AX25_MAC, this one can be used with Kenwood tranceivers,
+  that is, if they can send and receive KISS. This one has been distributed
+  before on with the quick out of the box DIGI_NED boot floppy.
+- Usage changed when wrong parameters are supplied. The usage was out-dated
+  (didn't show all the flags). Now the help-text is shown instead.
+- In digi_ned.mes you can now start a response-line with a ^ character. The
+  line will be transmitted as is (without the ^ character) and not as a
+  message. This enables transmission of any text format packet (and not
+  just Objects, Items and Bulletins).
+- When sending a packet with no payload DIGI_NED thought there was a match
+  with the "data_prefix:" array and kept the packet a shorter time for
+  dupe-checking. Fixed, now there packets are kept just as long as any other
+  normal packer. Found by David, ZL3AI, thanks!
+
+14-12-2002 version 0.3.3 + correction
+- Boris, OK1RQ found a problem with the new "diginext:" rule, it also
+  executed the "digifirst:" rules due to a bug.
+
+05-12-2002 version 0.3.3
+- Syntax and semantic fixes in the manuals and executables - provided by
+  David, ZL3AI. Thanks David!
+- Change in the satellite query response, when the satellite is out of
+  range then the response contains the next AOS instead of only saying
+  that the satellite is not in range.
+- Change of the AX25_MAC driver. Port numbers in the AX25_MAC.INI file now
+  start counting at '1' instead of '0'. The change is only cosmetic, if you
+  use the new AX25_MAC driver don't forget to increment the port numbers in
+  your existing AX25_MAC.INI file. The driver will now check the version of
+  its .ini file, look at the sample AX25_MAC.INI for the syntax. Reason for
+  the change is that the AX25_MAC port numbering now matches with DIGI_NED's
+  port numbering and its also more natural to start counting at '1'. Having
+  the same numbering can prevent hard to find installation mistakes. The
+  software API has not changed so DIGI_NED works equally well with the old
+  as with the new AX25_MAC driver. This change of course only applies to DOS.
+  +------------------------------------------------------------------------+
+  | WARNING:                                                               |
+  | The port numbers in AX25_MAC now count from 1 instead of 0 to allign   |
+  | the port numbers with the numbers used in DIGI_NED.                    |
+  | If you use version 0.06 or better do not forget to adjust your         |
+  | AX25_MAC.INI file. You can still use the old AX25_MAC if you want,     |
+  | function wise they are compatible. The new AX25_MAC checks if          |
+  | AX25_MAC.INI has the correct version number to prevent problems!       |
+  +------------------------------------------------------------------------+
+- Problem with "!ptt" command. On screen the program said that the PTT was
+  disabled, however it did not actually do it. Oops...
+- Added ALT-B keyboard command which forces transmission of the beacons.
+- After 1 minute of logging the logfile is now closed and reopend to give
+  operating system a chance to update the file administration. This applies
+  to the digi_ned logfile and the tnc logfile. This way the major part of the
+  logfile is saved even when bluntly switching off the PC (or in case of
+  a power interruption). Previously the logfiles would be empty in these
+  cases because DOS only seem to update its administration after the file
+  is closed. When exiting DIGI_NED normally this is not a problem, but it
+  is when the PC is unexpectedly switched off. I don't know if this was
+  also a problem for Linux - I don't want to jeopardize my filesystem to
+  check this...
+- The tnc logfile also contained non UI frames or UI frames with a PID
+  unequal to 0xF0. Since the TNC log format is only for text UI frames
+  this gave funny results. Now only UI frames with PID 0xF0 are logged, this
+  are the APRS frames and not IP, NetRom and connection oriented packets.
+- Added "~" to the "data_prefix:" rule in the sample digi_ned.ini. Now
+  dupe checking on UIview messages are treated like APRS conformant
+  messages.
+- Added an #ifdef in mac_if.c to prevent inclusion of rose.h if a new ax25.h
+  headerfile is used. Aparently this caused problems on an Suse 8.0 system.
+  Don't know exactly why, but this should prevent it anyway. The new ax25.h
+  header seems to include netrose/rose.h, but in the linux/rose.h file was not
+  protected against this, which led to redefinition problems.
+- Some output missed a <CR>, two error outputs had an extra <CR>. Thanks
+  to David, ZL3AI, for finding and reporting it.
+- Changed the template beacon to have an star with an overlay "D" for
+  DIGI_NED as per suggestion of Bob Bruninga on june 23 2002 on the APRS SIG.
+- Problem in monitor output when sending DX messages. It shows as destination
+  port the port on which the DX was recieved, instead of the port to which
+  the data is tranmitted. So it looked like multiple transmissions went to
+  the same port. The real transmissions were however on the correct port.
+  Found by Jaap, PA5JB, thanks reporting it!
+- Modification to mac_if.c do that it compiles again on Slackware 8.0
+  systems. Thanks to Diego, IW1DGI, for reporting this and testing the fix.
+- Repaired 'whois' example, it was broken after I added single quotes
+  arround the query data (to avoid redirecton when a '>' appears in the
+  query the user send). The DOS version now uses a simple qbasic Basic
+  program instead of the MKS tooklit 'egrep'.
+- New rule 'automessage:'. Enables to automatically send a message
+  internally to trigger posting of objects, keep tracking running or
+  to run programs at regular intervals.
+- Rules 'send:', 'beacon:', 'wx:', 'telemetry' and 'automessage' can also use
+  absolute time now. Add an '@' sign to the interval, the number now specifies
+  how many minutes past the hour the beacon shall appear. Note that numbers
+  above 60 will start skipping hours; i.e. @80 specified 20 minutes past every
+  other hour.
+- Added new rules "digifirst:" and "diginext". They work as "digipeat:" but
+  "digifirst:" only acts if the digi due is first in the digipeater list and
+  "diginext:" only acts if the digi due is not the first in the digipeater
+  list.
+
+02-02-2002 version 0.3.2
+- ?WX? broadcast did not work, code checked for 6 characters instead of
+  4 (reason: copied code from ?APRS? broadcast which is 6 characters...).
+- New variable possible in message, %x. This is replaced by the full packet
+  containing the query. Note that the originator call has been replaced by
+  the real-originator when there is a 3rd party header. This variable can be
+  used when you start a program with a query and you want to retrieve
+  specific information, like the sender of the query for example. In the
+  packet the control-characters are replaced by a "." (except those used in
+  MIC-E). Single quotes are also replaced by a "." so for execution from a
+  query the whole %x variable can be enclosed in single quotes to avoid
+  problems with redirect characters in the received packet query and more
+  such problems.
+- For variable "%q" in messages also single quotes are removed so the
+  variable can be enclosed with single quotes to avoid unwanted redirecton
+  when the ">" character is used in a query.
+- Extenstion to "via_block:" by popular demand. Now "via_block:" also
+  considers calls in the third-party header. It only considders the
+  most recent 3rd party header, not recursive when the embedded packet
+  contains another 3rd party header.
+- The default answer of a query ("?" tag in digi_ned.mes) could only
+  return one line. Now multiple lines are allowed like all other
+  responses.
+- Delay for reading out values van a multiplexed telemetry port changed from
+  1 ms to 4 ms.
+- The Makefile now defaults to the new ax25 library. Put a "#" in front of
+  "DEFS = -DNEW_AX25" if you use the old library.
+- When a WX variable is used in "wx:" but is not defined with "wx_var:" the
+  program now issues a warning (at runtime).
+- Formatting of DX message slightly changed, now better compatibility with
+  usual DX cluster output and still readable as raw packet.
+- New command "!ptt". The digi-owner can send a message with the command
+  "!ptt 111011x1". The commands disables or enables transmission on a
+  port. The left most digit is for port 1, then port 2 up to port 8. Binary
+  "0" means disabled, binary "1" means enabled. In the example transmission
+  on port 4 is disabled. Values "x" and "/" are used as "don't change".
+  With the previous example port 7 doesn't change value, if it was "0" it
+  will stay "0", if it was "1' it will stay "1". If you only need to
+  provide the number of digits for the ports you have or want to change.
+  For example to change only port 2 to "1" you may want to use "!ptt x1";
+  the not mentioned ports will not change.
+  P.S. note that if you shut-off the PTT bit for the port you are using to
+  send this command also an ack will not be send back! You can still
+  send messages however because the receiver is still active! Since the
+  reciever is active it will still digipeat received data to other ports
+  if the rules define this. Tip: with the "command:" rule you can make a
+  port read-only immediately at startup.
+- New kind for "wx_var:", "avg". "avg" provides a pseudo avarage value.
+  It is pseudo avarage to enable the possibility of a sliding timeframe
+  without wasting too much storage. It is calculated from up to 100 samples
+  within the wanted time. A single sample is calculated by taking the old
+  value for the sample, adding the new value read from the telemetry port
+  and dividing the result by 2. This value is stored back into the sample -
+  which means that the last value for the sample has 50% impact, the
+  previous 25% and so on. All 100 samples are build up this way for their
+  1/100st of the total sample time. From these up to 100 samples the avarage
+  is calculated when requested.
+- Sergio Matias, CT2HMN, discovered that some of the digipeaters in his area
+  seem to handle intelligent digipeater calls like WIDE12-12. Since the
+  detection for intelligent calls in DIGI_NED only handled up to a
+  hopcount of 7, digipeater calls like WIDE12-2 were seen as 'direct'
+  packets - resulting in bogus DX messages. Detection of intelligent
+  digipeater calls now works up to 15 - the maximum SSID value. Of course
+  I did not add rules to the default digi_ned.ini file to digipeat on such
+  calls, detection only avoids bogus DX messages. As a bonus the code also
+  became a bit simpler to read.
+
+01-10-2001 version 0.3.1
+- Added the OWNER manual in HTML. This will become the new documentation
+  for DIGI_NED. File is named "dnown101.zip".
+  +----------------------------------------------------------------+
+  |                                                                |
+  | Send comments for enhancments to PE1MEW, see adress on the web |
+  | via the http://www.qsl.net/digi_ned/ web portal.               |
+  |                                                                |
+  +----------------------------------------------------------------+
+  During the phase-over I will maintain the old documentation, after
+  that this will become THE manual for DIGI_NED.
+  +-----------------------------------------------------+
+  | CONSULT THE README FILE FOR UNPACKING INSTRUCTIONS. |
+  +-----------------------------------------------------+
+- Added nice picture to the directory displaying which files are needed
+  in a DIGI_NED repeater installation. Look at dn_files.png!
+  Thanks to F5SMZ for the initial picture and PE1MEW for updating it.
+- Found a bug in distance.c, some corrupted packets could slip through
+  the syntax checking. Now checking is more strict.
+- When the response is read from a file in a query then it is now
+  possible to also have an object in that file. Previouly the data
+  was always send as a message. The following definition in digi_ned.mes
+  will send an object when using Linux:
+  ?xyz
+  !echo ";OBJECT1  *010000z5213.61N/00600.00E0Dynamic Object" > tmpxyz
+  >tmpxyz
+  !rm tmpxyz
+- An execute response with two !! for SYSOP only did not work. I mananged
+  to make 2 mistakes with this in part of code. I feel ashamed...
+- Made a change to AX25_MAC, new version 0.05. Now the PC timer is re-
+  programmed to the correct rate if the TSR needs this and another program
+  messed with this timer. This is for example needed when starting qbasic
+  from the a query if you have a BayCom modem. Qbasic.exe re-programs the
+  internal PC timer to the original rate, but AX25_MAC needs this at a much
+  higher rate to handle BayCom modems. AX25_MAC will now detect if the PC
+  timer is reset to the original rate and re-programs it to keep the PC
+  timer at the higher rate needed to work with the BayCom modem.
+  (note that the versions inbetween were internal test versions to test out
+  different methods and to avoid breaking something)
+- New rule, "beacon:". This rule is just like "send:". From now on the
+  beacons defined with the "beacon:" rule are transmitted at regular
+  intervals and when an "?APRS?" broadcast or query is received, the
+  beacons defined with "send:" are only transmitted a regular intervals and
+  not affected by an "?APRS?" broadcast or query. An interval of "0" is
+  allowed to make beacons that shall only be transmitted when an "?APRS?"
+  broadcast or query has been received.
+- Alternative message format for "ack" messages accepted now. "ack"
+  messages may be send without a starting column. This appeared in
+  PocketAPRS. It looks like a bug, but since both the TH-D7 and
+  WinAPRS seem to accept it, DIGI_NED now does so too.
+  Thanks to Remko, PE1MEW, for reporting this.
+- When a 3rd party message addressed to DIGI_NED arrived via an IGATE
+  that had a direct path then DIGI_NED thought the originator of the
+  message was direct instead of the originator of the packet (i.e. the
+  IGATE). This is fixed now. Thanks to Remko, PE1MEW, for reporting this.
+- New rules "wx_var:" and "wx:"
+  With these 2 rules it is possible to create WX information beacons
+  from the telemetry data. A number of variables can be created which
+  are associated with a LPT telemetry port (inculding multiplexing).
+  These variables can accumulate data to calculate "minimum" and "maximum"
+  values of telemetry data or to sum-up differences when a counter is
+  connected on the telemetry input. Of course also the raw value can be
+  read. A formula a(x*x)+b(x)+c is used to scale the input value to the
+  wanted metric, for example input in km/h and output in mph or knots.
+  Also variables can be defined which reflect the current date and time,
+  both in local or zulu time.
+  Using "wx:" a data string can be transmitted which is build up with
+  the created variables using a formatting specification. This formatting
+  is straigt forward by inserting the variable values at the wanted place.
+  Formatting is availabe to have fixed or variable side, right or left
+  allignment and optional zero padding.
+  The purpose of all this is to be able to connect home-brew WX hardware
+  to DIGI_NED using a interface connected to the LPT port. For more
+  information consult the DIGI_NED web page at http://www.qsl.net/digi_ned
+  and the links from the TechWeb page at the DIGI_NED site.
+  The setup is universal and most certainly not restricted to WX use only,
+  you can send any telemetry data in a nice self-chosen format, for
+  example RDF data.
+- Changed run.bat, now it starts with a BayCom connected to COM1, it
+  used to be COM2. COM1 is more convienent for me because the system on
+  which I test with DOS has only 1 COM port...
+- DIGI_NED responds to the ?WX? broadcast and ?WX? query by sending
+  all the strings defined with the "wx:" rule.
+- The default "digi_ned.sat" file now contains entries for the new
+  PCsat and STARSHINE low-orbit APRS mini satellites.
+
+03-06-2001 version 0.3.0
+- Skipped version 0.2.9, this was a special intermediate update for
+  the APRS digi at KootwijkRadio, see http://go.to/pi1apk. Also used
+  for other special versions, for example a test version for the
+  telemetry interface work.
+- Some of the 3 bit address used to multiplex the telemetry ports
+  are inverted by the LPT port hardware. These are the "Auto Linefeed"
+  and the "Select Printer" lines. Now these lines are inverted by
+  hardware so address 0 appears as binary 000 on the output.
+- Changed the Mheard and DX function a bit. Now calls are kept per port.
+  For DX it is assumed that the same call is also at the same location.
+  For MH <call> a response is given for every port where the call is
+  heard. The effect of this is change is not visible if you have a
+  single port station, but it is more or less essential to make the DX
+  and MH function work on a cross-band digipeater. Individual stations
+  appear normally only direct on one QRG, but neighbor cross-band digis
+  will appear on more ports. Up to now the digi kept the call only once,
+  so you could only see the last reception.
+- New rule: "via_block:" to block packets that went via a specific
+  digipeater. This can be used to block TCPIP or IGATE traffic.
+  Added on request by a user.
+- Size of the "mheard_list:" extended, a size of 100 direct stations is
+  not sufficient for a wide digi. Each entry costs appoximately
+  4 + 10 + 4 + 2 + 4 + 2 + overhead (8 bytes?) = 34 bytes. So 100 entries
+  is about 3400 bytes. Changed to 150 entries, 5100 bytes. Now we also
+  have some room for double calls that arrive through multiple calls.
+  Of course you can adjust this to your own needs, I just changed the
+  default and checked if it does not consume to much under DOS.
+  Note that still only the last 40 calls are shown due to the
+  "mheard_show:" rule.
+
+25-05-2001 version 0.2.9
+- When digi_pos: or digi_pos_file: is specified, but the satellite stuff
+  is not then DIGI_NED still complained about the missing satellite database
+  -> small error in my satellite switch-on detection logic, fixed.
+- Added defines in the Makefile and Turbo-C++ project file. This makes
+  it easier to leave out parts of DIGI_NED when you want to build the
+  executable yourself from the source. This also makes it easier to port
+  the software to other platforms.
+- Now you can execute the "?exit" query via the keyboard, this was requested
+  to make debugging of startup .bat files simpler. Different exit codes
+  can be used to select what to start next after DIGI_NED terminated (an
+  example can be found in the sample "run.bat" file). This was already
+  possible on-air (when enabled) but new is the ability to do the same
+  from the keyboard.
+- When usign the "exit" query in Linux the terminal could be left in an
+  undesired state. Fixed.
+- An interval of 0 on the telemetry command (used to be able to query
+  telemetry but never transmit its data automatically) did not work
+  since value 0 was not accepted as input. Fixed.
+- The destination call on "telemetry:" is optional, however leaving it
+  out gave a memory violation. Fixed.
+- There were still some debugging messages in serial.c, removed now.
+
+19-05-2001 version 0.2.8
+- Doppelshift was added for the uplink instead of subtracted, changed now.
+  Thanks to Alex, KG4ECV for reporting this
+- A few output messages were missing a <CR>, resulting in wrong output of
+  the activity on the digi_ned screen in DOS.
+- When the digi_ned.tle file was empty a segmentation fault occurred. Fixed.
+- Added new rule, "serial:". This enables you to connect a GPS, Ultimeter
+  or other serial device to DIGI_NED. You can sent multiple sentences if
+  you want. The format for the setting reads as follows:
+  serial: 10 all com3 4800 GPSODN,WIDE,WIDE3-3
+  $GPRMC $GPGGA
+  If the wanted type of sentence is not specified (empty line following
+  the "serial:" rule) all the data on the serial input is accepted (if
+  it doesn't fail the checksum). Note that DIGI_NED will only output the
+  most recently read complete line in this case.
+  In the example serial data is send with an interval of 10 minutes to
+  all ports. The data is read from COM3 (under Linux /dev/ttyS2) at 4800
+  baud in this case. Supported baudrates are 1200, 2400, 4800 and 9600
+  baud. The serial line uses hardware-flowcontrol on send an receive.
+  In DOS COM1 to COM4 can be used with the following mapping:
+  COM1 = IOA=0x3f8, IRQ=3
+  COM2 = IOA=0x2f8, IRQ=4
+  COM3 = IOA=0x3e8, IRQ=3
+  COM4 = IOA=0x2e8, IRQ=4
+  As usual the DOS restriction not to have active traffic on 2 COM ports
+  using the same IRQ applies. The IOA and IRQ are fixed. I might add it
+  if there is demand to have this configurable. In DOS only 1 serial port
+  can be assigned at a time due to limitations in the used driver code.
+  In Linux COM1 to COM9 can be used with the following mapping:
+  COM1 uses /dev/ttyS0
+  COM2 uses /dev/ttyS1
+  COM3 uses /dev/ttyS2
+  COM4 uses /dev/ttyS3
+  ...
+  COM9 uses /dev/ttyS8
+  If a checksum is present in the DATA, DIGI_NED will validate the sentence
+  and ignore corrupted sentences. When no checksum is present data is
+  used as is. The data is transmitted with the call DIGI_CALL (that's
+  the call of this DIGI_NED) to the first call in the path given in
+  the serial command. The next calls in the path of the serial command
+  are the digis, in this case WIDE, WIDE3-3. The next line in the .ini
+  file specifies the sentences to be picked up from the serial line for
+  transmission. Multiple sentence types can be specified. All sentences
+  are transmitted at the same time.
+  DIGI_CALL>GPSODN,WIDE,WIDE3-3:$GPRMC<RMC sentence follows>
+  DIGI_CALL>GPSODN,WIDE,WIDE3-3:$GPGGA<GGA sentence follows>
+- The DX function now also decodes frames from dumb-trackers. Recognized
+  GPS sentences are $GPRMC, $GPGGA and $GPGLL.
+- Fixed some typo's in "digi_ned.ini", thanks to Rolf, DK7IN, for
+  reporting this.
+- When not specifying the "message_file:" in digi_ned.ini a query causes
+  a hangup or crash. I overlooked something in the code when the run
+  time variable "%q" was added to the message file handling. Thanks to
+  Rolf, DK7IN, for reporting this.
+- The "d_relay.ini" file has now an accompaning "d_relay.mes" file with
+  the bare basic subset of queries.
+- A problem was found with bogus DX messages. These are caused by Kantronics
+  digipeaters which leave a the end of WIDEn-N digipeating a WIDEn in
+  the path without a "*" (H_FLAG) indication. If someone used a path like
+  PE1DNN>APRS,WIDE3-3 the final packet looked like PE1DNN>APRS,WIDE3. Since
+  no "*" is present DIGI_NED thought this was direct. Fixed now. It is
+  however recommended to use a path like PE1DNN>APRS,WIDE,WIDE2-2 anyway
+  since then the first station which picks up the packet will be identified.
+- Sattracker enhancements. The Satellite object can now shows the date or
+  the epoch (daynumber) of the used kepler-sets. A new rule to control that
+  is introduced, "sat_obj_format:". The number in this rule specifies the
+  format of the sat-object:
+  0) Show as "AO40    E" (where E is for the Elevation column)
+  1) Show as "AO40 126E" (where 123 is the epoch of the used kepler
+                          data and E is for the Elevation column)
+  2) Show as "AO40 0805" (where 0805 is the ddmm date of the used
+                          kepler data)
+  3) Show as "AO40 0508" (where 0508 is the mmdd date of the used
+                          kepler data)
+  Default is 0, the standard digi_ned.ini file has value 2.
+- Cleaning up parts of the Predict code, but that doesn't have functional
+  impact. There could have been a potential problem for non-English language
+  Linux users. I'm only running an English version here so I can't verify.
+  Anyway, if that was the case then it has been eliminated now.
+- The DX function now also decodes maidenhead grid-squares if this appears
+  at the start of the data, enclosed in "[]".
+- Relaxed time on multiplexing input. There is now at least 1ms time between
+  changing the strobe output and actually reading the input.
+- For telemetry the association of port numbers put on the 3 bit address
+  lines of the control port can be overruled. For example to completely
+  reverse the numbers, so the first value is read from address 5, the next
+  from 4 etc, you can specify:
+  telemetry: 20 all lpt2_8/5,lpt2_8/4,lpt2_8/3,lpt2_8/2,lpt2_8/1,lpt2_8/0...
+  (path truncated to be able to fit the example on 1 line...)
+  The 3 bit address on the control port can take values 0..7.
+- Added 2 sections to the FAQ in digi_ned.txt:
+  - How to let digi_ned behave as Kantronics TNC
+  - How to update the kepler data in the sattracker (note that this, and
+    more, is also described in the sattracker documentation).
+
+16-04-2001 version 0.2.7
+- You woun't believe it (I did not anyway), but there is another problem
+  with timezone stuff. This time the value for nextaos was used wrongly
+  in combination with in the timer functions. In DOS satellites were
+  transmitted like crazy when tracking, depending on how far AOS for
+  the satellite is. Solved now hopefully.
+- Read the latest TLE data from the Packet network.
+
+14-04-2001 version 0.2.6
+- Nasty bug in the "trk" and "sat" query, specifying more than one satellite
+  caused a crash in the DOS version. Most Linux systems survived this out
+  of array-bounds abuse. Now the logic is fixed and even enhanced! You can
+  now supply more than 1 satellite on the "sat" and "trk" command, when
+  using a 3 letter sat like ISS the digi will add the trailing "_" for you!
+  Thanks to Boris, OK1RQ, for reporting this bug. Keep reporting bugs
+  and ideas for enhancements! There is no guarantee that it will get
+  implemented (but you can always do it yourself too) but without this
+  input it will for sure not be implemented!
+- The UTC time-difference setting in digi_ned.ini did not work on DOS
+  systems. On DOS either the environment variable TZ is used or if not
+  available the setting in digi_ned.ini. The latter failed because even
+  when TZ is not specified the Borland-library still provided a UTC time
+  offset! As a result the reported satellites were ahead of time. Now
+  it works. The value "digi_utc_offset:" is only used when no timezone
+  information is provided by the system. Added information about this and
+  about setting the TZ environment variable in the digi_ned.ini file.
+  This one caused me a real headacke so it better be working now...
+- Keplersets updated up to the newewst 2 line elements received on
+  the KEPLER@AMSAT packet area on the Dutch packet network.
+- Modification when a second station wants to track a satellite that is
+  already being tracked. The previous version ignored this, now tracking
+  is restarted. This way an object will appear soon and the tracking stops
+  "track_duration:" minutes after the last received request (was after the
+  first received request). Solves the problem that it sometimes looks that
+  the digipeater does not respond to the "trk" command (it was already
+  tracking but the next object deposit could take a while).
+
+04-04-2001 version 0.2.5
+- Found an error in the pattern matching routine. Also use of pattern
+  matching caused commands like "!out 1 10010001" to return an error
+  message instead of "command accepted"
+
+04-04-2001 version 0.2.4
+- Apparently one of the types I created "timer_t" now is also included in
+  GCC. This caused compilation errors on systems with a new GCC version.
+  I renamed my type to "digi_timer_t".
+- Removed object from the message-file, the shop for which it was is gone.
+- DigiTo: and DigiSsid: changed back in the default digi_ned.ini. Now they
+  only there is an explicit test for UIview messages to avoid SSID
+  substitution on those. The patch from the previous version was no good
+  since it also did not allow MIC-E packets anymore. The rule used to
+  solve this is ssid_ignore_prefix: which now has the "~" character to block
+  UIview messages for SSID digipeating.
+- Keyboard commands now also work in Linux. The handling is a little bit
+  restricted in the sense that it uses the 0x08 character as backspace,
+  disregarding any terminal settings. Commands can be entered with ESC
+  flowed by the command character. On my RH5.2 installation this also
+  works with ALT-<key> since that just outputs the character with an
+  ESC prefix character. YMMV but at least for some users these keyboard
+  commands will work. For Linux I did not add the ALT-D (or ESC+D)
+  command, starting a shell from DIGI_NED is useless for Linux.
+  Since you don't want DIGI_NED to mess with the keyboard when you want
+  to run it in background, keyboard support has to be switched on by
+  supplying a '-k' flag at the commandline.
+- Implemented ALT-H which gives keyboard-help. Now you don't have to
+  memorize al the ALT-<key> commands anymore, just ALT-H!
+- From the message file you can now start a program. You can also read
+  the query response from a file.
+  Response strings starting with '!' are executed. Response strings
+  starting with '>' will read the data from a file named in the text.
+  When starting a string with '!!' execution is restricted to the
+  digi owner.
+- In a message text you can use %q which will be replaced runtime
+  with the complete query string from the user (converted to lowercase).
+- You can now use wildcards in queries to match the rest of the query.
+  This works the same way as wildcards in the the call-matching used
+  with the rules. The wildcards are:
+      *  Matches any 0 or more character(s).
+      ?  Matches any 1 character.
+      @  Matches any alpha character.
+      !  Matches any digit.
+  This can be used to simplify the alternatives for a query, I had
+  the need for this to implement the ?whois example.
+- Added Satellite tracker, donated by Alex Krist, KG4ECV. Read
+  Sattrack.txt and Sattrack.doc for details. Thank you very much, it is a
+  very nice addition to DIGI_NED! You can send "sats" or "sat list" to get
+  a list of available satellites. All satellites are identified with a 4
+  character AMSAT identifier. When a satellite has only 3 characters append
+  underscores to make it 4 (e.g. ISS becomes ISS_).
+  You can have DIGI_NED plot the location of a satellite for you. Send
+  'sat ao40' for example to get an AO40 satellite object on the map. The
+  satellite will have comment text that specifies when it will come above
+  the horizon in your area. You can also track a satellite. Send 'trk uo22'
+  to track the uo22 satellite. When not in range every 10 minutes an update
+  for the uo22 is plot on your map. The satellite comments shows when it
+  will rise above the horizon. When in range the satellite will plot an
+  update every minute. The satellitte comment shows you bearing and azimuth
+  to the satellite but also the up dan downlink frequency including the
+  current dopler shift for you. Besides that the mode op operation is
+  visible. For more extensive information read Sattrack.txt and Sattrack.doc,
+  provided by Alex, KG4ECV.
+- As usual moved some code to enhance the program structure.
+- Started using APNDxx as destination code instead of APZxxx.
+- New format destination addess:
+  DIGI_NED now uses destination address APNDxx. The prefix APN can be
+  shared with other intelligent digipeaters. The prefix APND is reserved
+  for DIGI_NED now in coordination with the APRS protocol workgroup.
+  The DIGI_NED version number is now compressed in 2 alfanumeric bytes.
+  For this count base 36 is used to have enough numbers to identifiy
+  DIGI_NED versions, I.e counting goes:
+  01,02,...,09,0A,0B,...,0Z,10,11,..,1Z,20,...,etc
+  where 01 is version 0.0.1, 0Z is version 0.3.5 and 10 is version 0.3.6
+  etc. It is not as clear as the old numbering, but this leaves space for
+  other applications using the APN prefix.
+  Table (for versions 001 to 036 with corresponding base 36 numbers):
+  001 002 003 004 005 006 007 008 009 010 011 012 013 014 015 016 017 018
+   01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F  0G  0H  0I
+  019 020 021 022 023 024 025 026 027 028 029 030 031 032 033 034 035 036
+   0J  0K  0L  0M  0N  0O  0P  0Q  0R 0S   0T  0U  0V  0W  0X  0Y  0Z  10
+  The destination for this version is APND0O
+  (P.S. Suggestions to use different destination addresses have been
+  declined in coordination with the APRS protocol workgroup members. The
+  version identification is an part of the APRS standard, the type of
+  message can be identified with the whole frame anyway).
+- DIGI_NED now contains support for multiplexing via the lpt port. When
+  reading the port the port number (which is 0 based and runs from 0
+  to 5) is put on bits 1, 2 and 3 of the control port. These bits
+  correspond with the "Auto Linefeed", "Initialize Printer" and
+  "Select Printer" outputs of the LPT port.
+- Removed French documentation, added a pointer to the Moselle APRS Packet
+  Group (MAPG) in France to the digi_ned documentation. Use this to get
+  French support for DIGI_NED. The address is:
+  http://mapg.ifrance.com/mapg/index.htm or via the DIGI_NED portal
+  at http://www.qsl.net/digi_ned/
+
+05-01-2001 version 0.2.3
+- +----------------------------------------------------------------------+
+  | IMPORTANT: Changed the operations "replace" and "new", they will not |
+  | put in the own digi_call automatically!! Because this change is not  |
+  | compatible with older versions the .ini SHALL now contain a version  |
+  | number. This is done by a "version:" rule. The current version is 2  |
+  | DIGI_NED will refuse to run with non compatible versions. The        |
+  | default digi_ned.ini and d_relay.ini files did not use "new" and     |
+  | "replace". You only need to add the version number if you want to    |
+  | reuse the existing rules file.                                       |
+  +----------------------------------------------------------------------+
+  The "replace" and "new" operation do not automatically add DIGI_CALL
+  anymore, reason for this is increased flexibility, the DIGI_CALL can
+  always be specified in the replacement or new digipeater string anyway.
+  For the "add" operation the automatic replacement is still done.
+- The handling of "?TLM B" was put in a little bit too fast. First of all, all
+  bits were reversed ('0' where it should have been '1' and '1' where it
+  should have been '0'). Also the order was flipped. B1 was B8 and B8 was
+  B1... Sorry for the inconvienience it may have caused.
+- In "linux.c" removed "#include <asm/io.h>" since this is already handled
+  by <sys/io.h>. This gave compilation errors on a lot of systems.  (except
+  mine...). Realy removed this time, I already said I removed it last time
+  but to my surprise the line was still in!
+- Ultimeter stations use a string that starts with "!!" and cannot be
+  distinguised from a compressed position. String that start with "!!" are not
+  regarded as position anymore, sorry if your compressed location starts with
+  "!!". A whole range of compressed locations cannot be used compressed because
+  of this. DIGI_NED will not use these compressed positions for its DX
+  functions anymore to prevent bogus positions due to these Ultimeter string
+  transmissions.
+- Cleanup of code. I was decoding strings with port numbers at many places,
+  now I made a support function for this. This meant that I had to change
+  code in many of the source files to untilize this new function.
+- DigiTo: and DigiSsid: changed in the default digi_ned.ini. Now they only
+  work if the destination call starts with "AP". The old setup caused SSID
+  changes on the desitination call when a local packet from a UIview
+  message exchange was recieved.
+- Added rules "allow_to:" and "allow_from:" to restrict packets to be
+  accepted for digipeating on a specific port. This is used for advanced
+  cross-band digipeating where you only want to pick up very specific
+  packets.
+- On the monitor output the dump of the digi_ssid: rule did not show the
+  replacement SSID, fixed.
+- On the monitor output the dump of the DX transmission showed the wrong
+  port number, fixed.
+- Telemetry headacke hopefully solved. When using the 8 bit LPT port
+  input (lpt2_8 for example) somehow the data register is reset to 0, so
+  all set output bits vanish. This behaviour differes per LPT port
+  implementation, some do it and some don't. DIGI_NED was verifying the
+  data written to the LPT's control register by reading it back. It seems
+  that this reading caused a reset later. I don't read the values anymore
+  and now it seems to work.
+- On the !out command you can now specify a 'P' in the string. This will
+  toggle the indicated bit for 1 second. Can be used as 'reset' pulse
+  or something similar (we had a need for it).
+- New command for the .ini file: "command:". The text after this command is
+  fed to DIGI_NED's messsage mechanism (like the keyboard commands used by
+  the DOS version users). This can be used to send "!out" commands at
+  startup to get the LPT port in a defined state.
+- Cleanup of the AX25_MAC directory. It contained some files for the YAM
+  modem which I used for testing. I planned to remove these files but
+  forgot over and over (I hardly ever look in the ax25_mac directory, the
+  MAC driver is running stable since the very first beginning...).
+- The digipeater position can now be read from the first line of the
+  beacon-file with "digi_pos_file:" so that the icon position and the
+  originating position for DX messages is the same. This can only be done
+  when the beacon is in uncompressed or compressed format, not MIC-E. If
+  you want to use MIC-E the position can also still be explicitly specified
+  using "digi_pos:".
+- Added timestamp to command responses so they are uniq and it is visible
+  what the most recent response was.
+- Added keyboard command ALT-A for DOS users to toggle activity logging on
+  and off.
+- Removed the French documentation, its outdated. There is better
+  documentation on the web in French! Brouwse to the MAPG site
+  at: http://mapg.ifrance.com/mapg/index.html or reach this site through
+  our portal at http://www.qsl.net/digi_ned/ (also for all other pages).
+
+15-11-2000 version 0.2.2
+- Added "tnclogfile:" rule to digined.ini. With this you can log the
+  received and transmitted frames in the TNC format, also used by other
+  programs. For example you can import such a file in Xastir, or analyse
+  the messages against the APRS standard using Ian Wade's "aprsdec" program
+  (can be found on http://www.netro.co.uk/aprs.htm).
+- Made the default messages_path: and dx_path: in the sample digi_ned.ini
+  "WIDE" (was "TRACE,WIDE"). Now that more stations have tiny web pages and
+  DX support we do not need a wide circle for distribution anymore, a closer
+  circle will do.
+- Changed default path on the "send:" command, does not use TRACE6-6
+  anymore but WIDE3-3. This cuts down some unwanted traffic.
+- In "linux.c" removed "#include <asm/io.h>" since this is already handled
+  by <sys/io.h>. This gave compilation errors on a lot of systems.  (except
+  mine...).
+- Removed the "}" from the "data_prefix:" rule, loops via internet seem
+  possible. Sorry for the messages ariving through third-party, but I don't
+  expect many much messages as third party anyway.
+- Changed LPT port code, now DIGI_NED forces the port to uni-directional SPP
+  mode. Some PC's like the HP OmniBook 600C set the LPT port data port to
+  some "input" mode instead of output. Telemetry and LPT output failed for
+  that reason. Thanks to Remko, PE1MEW, for reporting it.
+- Found a bug in telemetry.c, when a port cannot be read sometimes the wrong
+  portname was displayed on the console.
+- With ?TLM you can now specify a "B" without a number, which returns all 8
+  bits from an telemetry input port. It does regard the "BITS." pattern in
+  the telemetry data so '1' means active and '0' means not active. A '1'
+  will be set if the bit value read from the port corresponds with the
+  corresponding value in the "BITS." pattern (See APRS specification on
+  www.tapr.org). Default logical '1' is active and '0' is inactive if a bit
+  is not specified with the "BITS." pattern.
+- New digipeat operation "shift". Shift shifts out all "used" digis except
+  the last one and then adds a new path. This operation was requested for
+  builing a HF gate. It does not add the DIGI_CALL by default.
+  Example:
+    digipeat: 2 * 1 shift2 DIGI_CALL,HFGATE,WIDE4-4
+  Input on HF like this:
+    W0ABC>APRS,W0QRZ,W0HF*,TRACE4-3
+  Will be repeated like:
+    W0ABC>APRS,W0HF,PE1DNN,HFGATE*,WIDE4-4
+  So it keeps the digipeater from which we received the packet and adds on
+  the new digipeaters we specified. The "2" on the "shift" operation means
+  that we want to use up two digipeaters (default is one) on the path (this
+  works on all operations, even if it does not make sense like "erase3").
+  This operation was suggested by Gerard, F5VAG/DL4MW.
+- One user crashed his floppy based system when requesting "?tlm a1", both
+  form the keyboard and from RF when running from floppy. I found a problem
+  in the output when the flag "-a" was used to display activity. On my
+  system it did not crash but it showed strange characters instead of the
+  name of the telemetry source. I repaired the problem in the source,
+  hopefully this will also fix the experienced reset of the system. My guess 
+  it that this reset could have been caused by anti-virus software
+  triggering on DIGI_NED's (read) access to memory that does't belong to it.
+  But that is just a guess since I could not reproduce this resetting
+  behaviour.
+- Got 2 strange bug reports up to now that could not be reproduced.
+  - One user gets a system crash when he enables the DX messages.
+  - Another user had a strange thing that the position programmed in
+    digi_ned.ini was read wrong by DIGI_NED. By removing 2 environment
+    variables from AUTOEXEC.BAT it was fixed (?) (but adding the two in my
+    own configuration did no harm whatsoever...).
+  In all cases I could not reproduce the behaviour on my system, it works
+  fine here. So these failures are depending on the equipment and 
+  configuration and may be caused by bugs in DIGI_NED, conflicts and bugs
+  in other programs or not 100% functional hardware. If you encounter a
+  situation like this, please be sure there are no other TSR's and drivers
+  loaded that could interfer with DIGI_NED function. I try to find out
+  whats wrong, but I can't reproduce such errors. Please first try you
+  configuration on an empty system. If that works, add all your usual stuff
+  if needed. Do it one by one to find the conflicting setting or TSR. If it
+  can be reproduced, make contact with me so I can help others with your
+  findings or repair the bug if it is caused by DIGI_NED. It is supicious
+  that this all happens with DOS but not with Linux systems...
+- New feature in the message file. Now you can make a query that returns
+  a message to somebody else or make it return a bulletin. If the response
+  starts with ':' then a correctly formatted message including the
+  destination addess is expected. This message is send as-is. A regular
+  response starting with a ':' can be made by escaping the first character
+  with a '\'. Suggested by Thierry, F4AIE, thanks!
+
+22-10-2000 version 0.2.1
+- Error in DX message generation, DX messages are send with the destination
+  adress as originator adres. That's wrong obviously!
+- Update in sample digi_ned.mes file: PI4APD should be PI2APD for the 70cm
+  repeater in Apeldoorn...
+- Update in sample digi_ned.mes file: club station net of PI4APD starts at
+  20:15 now.
+
+19-10-2000 version 0.2.0
+- Made a revision step since we now introduced telemetry! In the
+  digi_ned.ini file (or another file if supplied on the command-line)
+  you can specify a 'telemetry:' rule. On this command 6 telemetry
+  sources can be specified; 5 analog channels and 1 digital channel. In
+  this first attempt only the parallel port (lpt<n>), an 8 bit input via
+  parallel port (lpt<n>_8) and a dummy device 'off' are supported. The
+  'telemetry:' rule will cause regular telemetry transmissions.  Note
+  that the telemetry stuff is commented out in digi_ned.ini by default.
+  Using it requires additional hardware and configuration, also
+  described below.
+- In the APRS Specification (to be found at www.tapr.org) there are a
+  number of messages the digipeater can address to itself which
+  describes the name and interpretation of the APRS telemetry. In
+  digi_tlm.ini you will find sample beacons to transmit. For the exact
+  syntax and allowed field widths (they do not have all the same
+  length!!) see the APRS Specification. Without reading that you will
+  most likely not guess what everything means or guess wrong. If you do
+  it right you can also do some math on the analog value. A telemetry-
+  aware APRS client will do the same.
+- With "tele_info:" you can supply the beacon information to DIGI_NED,
+  this info will be used when querying DIGI_NED with the TLM command.
+  Without this info DIGI_NED will just report with generic names, but
+  when you can have it return things like "lamp is on" or "lamp not on"
+  for example for a digital value. Or "Battery 12.5 Volt" for an analog
+  value.
+- With a ?TLM query you can retrieve telemetry values manually. The TLM
+  query needs an argument specifying what you want. This can be A1..A5
+  for the analog channels or B1..B8 for the binary bits. These names
+  correspond with the names used in the APRS Specification.
+- Sending a message like !OUT 2 01001001 you can change bits D0..D7 of
+  an LPT port. '2' will mean LPT2 or "/dev/lp1" in Linux (Linux starts
+  counting at '0'). Using the 'x' or '/' character ('/' is located just
+  below the '0' which makes entry of digits on a THD7 easy...) you can
+  leave bits in there original state. The first digit affects bit '0'
+  on the LPT port, the next one bit '1' etc. up to bit '7'. Extra
+  characters after these 8 bits are ignored.
+- Queries were optionally prefixed with a '?'. From now on all non
+  alphanumeric ASCII characters can be used, except '!', '/' and '\'.
+  This way you can do more queries without DIGI_NED blocking
+  repetitions. DIGI_NED blocks 100% equal request to avoid Ping-Pong
+  problems with auto-answer stations. The '!' prefix has been reserved
+  for remote control. The prefix '/' and '\' are reserved to allow you
+  to make 'filesystem' like queries. You can use any other prefix in
+  front of '!', '/' and '\', so you can send for example the same
+  remote control command within a short period, for example "?!OUT 2 1"
+  works just like "!OUT 2 1". "#!OUT 2 1", "$!OUT 2 1", "%!OUT 2 1"
+  etc. are all the same but will not be regarded as "duplicate" so you
+  don't have to wait unit DIGI_NED accepts your command again, just
+  change the prefix every next time.
+- The "block:" list now also works for "mheard" and "DX" so you can
+  keep bogus calls or calls that send beacons that are misinterpreted
+  as a position (as happened to a VK station which had an DX of 17529.8
+  km!) out of the lists. Reported by VK5ZTY, thanks!
+- On compressed and uncompressed position packets I now check that the
+  destination address starts with "AP". If not, the position is ignored.
+  (For MIC-E this check obviously does not work...).
+- Now "^C" can also be used to normally exit the DOS version. I added
+  this because I kept interrupting the program this way since I use
+  Linux most of the time. So now a break signal can be used in addition
+  to ALT-X.
+- Added "dx_portname:" rule so you can give you port a name for the
+  DX messages. Default portname, if nothing is specified, is "Portx"
+  where 'x' is the port number. Addition suggested by WA7NWP.
+- Changed default "dx_level:" in sample digined.ini file to 25 km (was
+  100 km but there were not many DX messages in our flat country this
+  way). The idea is to be informed about what the maximum distance is
+  at regular intervals and to be alarmed when it goes up due to more
+  frequent messages. But of course you can configure this differently
+  if you want. Even setting to 0 may be interesting since it will
+  report the best DX over the last hour anyway. Since there are most
+  likely stations beyond 25 km al the time this setting only avoids
+  ridiculous reports of nearby stations during startup and restart of
+  the digipeater. This also ensures regular updates to be transmitted
+  so you can watch the DX conditions change.
+- Found a bug in call matching. Matching "PE1DNN" with "*-0" in the
+  "block:" list worked but matching "PE1DNN" with "PE1DNN-0" failed.
+  Reported by VK5ZTY, thanks!
+- Error in DX bulletin transmission, it only went out through the first
+  port due to a bad positioning of the duplicate transmission check.
+  Reported by VK5ZTY. There was also a potential memory-leak, fixed
+  also.
+- "Dx_Level:" now also has a maximum range to filter-out obviously
+  bogus reports.
+- The owner can now remotely clear the MHeard list with the "!CLEAR"
+  message. "!CLEAR" clears all MHeard entries, "!CLEAR 1" clears all
+  MHeard entries for Port 1, "!CLEAR PE1DNN-2" clears the call
+  PE1DNN-2.
+- Ran spelling checker on all documents.
+
+20-09-2000 version 0.1.8
+- Added '-a' command line flag, contributed by Alex, KG4ECV. With this
+  flag you can see which queries enter the system, which ones are
+  accepted and which ones are rejected. When you use this flag without
+  '-v' then you have good overview what happens without suffering from
+  information- overload.
+- Not a new feature, but forgot to tell with 0.1.7. Now a beacon file
+  can have more than 1 line. Each line is send as separate beacon. I
+  build it in when I was experimenting with telemetry. For telemetry
+  some messages need to be send which tells what the telemetry data
+  means. It was neat to keep it in one file so it is transmitted as one
+  block. The telemetry code itself didn't last, but the feature to have
+  more lines in a beacon file was kept.
+- Buglet in handling 3rd party headers. I patched the source call of
+  the packet with the real call which is found in the 3rd party header.
+  This was needed for the query functions so the answer would be send
+  back to the correct station. Unfortunately it also damaged packets
+  which were not directed to DIGI_NED at all or were not even messages.
+  This caused all 3rd party packets to get send with as originator call
+  the call of the real originator from the 3rd party header and not
+  with the call of the originator as it was received. Thanks to Alex,
+  KG4ECV, for noticing and reporting it.
+- MH now accepts port '0', which means 'all ports'.
+- New rule called "digi_pos:". With "digi_pos" the position of the
+  digipeater is defined, needed for the functioning of the DX functions
+  below.  Example: digi_pos: 5213.61N 00600.00E
+- DIGI_NED has a DX function build in. First of all you can get
+  distance information through queries. This works with the command
+  ?DX. It works like ?MH - with port number or call. It uses the
+  entries in the MHEARD list, so when the MHEARD list is small the DX
+  will also not give much. DX with port number 1 returns for example
+  the next 3 messages:
+
+  DX-P1 of all   263.3 km D0BRP       DO4BH-1
+  DX-P1 of 24h   161,4 km DO4BH-1     PD0JBR-1
+  DX P1 of  1h   123.9 km PA3ESK-2    PE1ABT-15
+
+  The first is the best DX for all entries available in the MHEARD
+  list. It shows the distance to best DX station, the call of the best
+  DX station and second-best DX station.
+
+  The second and third lines are almost the same, but the second is for
+  the stations received in the last 24 hours and the last for stations
+  received in the last hour.
+
+  If there is no second best DX station then only one call is shown.
+
+  Tip: ports are numbered 1 to 8, number 0 can be used to mean
+       "all ports". This also works for the MHEARD command by the way
+
+  We can zoom in on a station with "DX <call>" for example
+  "DX PD0JBR-1"
+
+  This returns:
+
+   PD0JBR-1     138.1 km  bearing 026 degrees
+
+  (If you want to know when the station was received, use "MH PD0JBR-1")
+
+  It shows distances and bearing from the digipeater to this station.
+  Distance uses a great-circle calculation, bearing is based on a flat
+  earth model. Bearing "0" is True North.
+
+  The DX <call> not only works on calls returned by DX <port> command
+  but on all calls in the mheard list. Like MH also port 0 is accepted
+  to mean 'any port'. If there is no distance and bearing information
+  the returned message will say so.
+- New rule "size_heard_show:" defines how many calls are shown on a
+  "mheard <port>" command. This used to be "size_heard_list:" but the
+  size of the heard list may need to be bigger now that it is also used
+  for the 'dx' function. Still we may want to display only a limited
+  number of stations from the heard list. If "size_heard_show:" is not
+  defined then it is the same as "size_heard_list:".
+- Query "MH STAT" returns now the number of calls in the list and
+  the date of the oldest entry.
+- Changed implementation of timer.c Was much too complicated for its
+  task (I reused this from existing code where it served a purpose..)
+- New rule "dx_times:" defines the period of time for which the best
+  DX is shown.
+- New rule "dx_metric:".
+  Dx metric defines the presentation of distances and the threshold for
+  distances in the dx_level: rule. Options are "km" for kilometers,
+  "mi" for statue miles and "nm" for nautical miles. Default is "km".
+- New rule "dx_level:".
+  The DX level command defines when we report a station as DX. It
+  contains a parameter for the port for which this rule is valid (DX on
+  6m a is something different then DX on 2m, and DX on 70cm is
+  different again), a parameter for a threshold, for example everything
+  below 100 km is never regarded as DX, and a parameter defining the time
+  in hours to look back. When for example a station is received which is
+  the "best DX" for the last hour (1) and is further away then the
+  threshold (100 km) then it is reported. The unit of distance is
+  determined by "dx_metric:", default is "km".
+- New rule "dx_path:".
+  DX path contains the destination call and digis to be appended to DX
+  messages transmitted by DIGI_NED. This path has to be defined per
+  port, more definitions for one port are possible. Also "dx_path: 1
+  DX" works, no digipeater definitions are used in that case. DX
+  messages are never transmitted on ports with do not have any matching
+  "dx_path:" definition.
+- Added '-d' command line flag to trace the DX function of the
+  digipeater.
+- The query "mheard <port>" now shows how many calls are send.
+
+01-09-2000 version 0.1.7
+- Many thanks to Jean-Philippe Aumaitre, F5SMZ. He translated the
+  DIGI_NED documents to French! The files are in FR_docu.zip
+- New rule: "digissid:". This rule behaves like "digito:" but now
+  on frames that has digipeaters in the path. All these digipeaters
+  shall be "unused", when one of them is "used" the "digissid:" rule
+  will not be evaluated. Just like "digito:" the "digissid:" rule is
+  only evaluated for UI type packets with PID set to F0 (normal AX.25).
+  The "digissid:" rule was needed to correctly implement SSID
+  digipeating. The old method had some problems because you could not
+  see if a frame was already digipeated and it was not possible to
+  determine if a station was local.
+- New operation "keep". With "keep" the digipeater path is not changed,
+  but you can manipulate the "digipeated" bit. For example "keep0" will
+  leave the digipeater path unchanged, "keep" will use up the next
+  digipeater in the path without changing the call. This was needed to
+  correctly implement the new SSID digipeating rules.
+- +---------------------------------------------------+
+  | CHANGED THE "DIGIPEAT ON DESTINATION SSID" RULES. |
+  +---------------------------------------------------+
+  You are encouraged to adopt these new rules and discard the old ones
+  (search for "digito:" and you will find the rules in digi_ned.ini).
+  The new method was verified with the APRS SIG at
+  "http://www.tapr.org".
+- Using the new SSID rules detection of "Local" stations is
+  enhanced. This will avoid Ping-Pong effects and misinterpretation
+  of "local" calls.
+- Checking a call with "*-0" to test if a call does NOT have a SSID
+  also works.
+- You could send ?APRS? directed to digi_ned to ask for its beacons.
+  It turns out ?APRSP was designated for this, so that is now also
+  supported.
+- The "list" in the sample digi_ned.mes was incomplete, forgot the
+  the build-in queries. Added them, including the new ?APRSP command
+- Changed the number of kept stations in the sample d_relay.ini file
+  from 6 to 16. 6 is a bit small even for a simple Relay. 16 means max.
+  5 data-lines for a MH <port> query.
+- Changed "digi_id.ini" into a status message by adding a ">" prefix
+- Added a "Kenwood mode"
+
+  It appears that at least the TH-D7E can not handle formatted packets
+  with a total length of more than 195 octets. The formatting used
+  internally seems to be the same as the monitor format used by the
+  build-in TNC.
+
+  SOURCE>ID,PATH,PATH*,PATH:Hey look at me, this is my long ID<CR>
+  <--------------------- Max 195 characters --------------------->
+
+  This problem applies to at least to UI packets with PID=F0 (normal
+  packet unproto frames). I've seen on a normal link that the TH-D7E's
+  APRS function also stops on other packets, but I could not determine
+  which packet types. Maybe all packets with lengths above what the
+  TH-D7E can take cause problems. I have no information if other
+  Kenwood models behave the same way as the TH-D7E v2.0 does.
+
+  Long UI packets are legal to appear on the air. These are for example
+  FBB unproto packets, ID packets with a long length, APRS packets with
+  a long third party header or one of the few APRS packets that do not
+  have a length limit.
+
+  There are 3 kenwood_mode settings that have effect on UI packets
+  with PID=F0 (normal AX.25 UI frames):
+
+  0 = switch off, allow UI frames with size 256
+  1 = switch on, too long frames are truncated before transmission
+  2 = switch on, too long frames are not transmitted at all
+
+  Default is 1. In almost all cases it is just comment that is too
+  long, truncating that is no problem. But you can change it if you
+  disagree.
+
+  When you choose anything else then 0, then only UI packets with
+  PID=F0 are digipeated (normal AX.25 UI frames) and no other packets
+  like I, RR, REJ, SABM etc. are digipeated. Also no UI packets for
+  NetRom, IP and ARP are not digipeated when using this
+  "kenwood_mode". This is done because these packets are usually long
+  and truncating or not transmitting these packets causes corruption of
+  data.
+
+18-08-2000 version 0.1.6
+- Segmentation Fault in Linux. I just knew this would happen someday..
+  I had moved some code in "message.c" from one place to another.
+  Unfortunately the code following this on the old location assumed
+  certain values to be set. But this was not longer the case. Result
+  was this Segmentation Fault in Linux when you were lucky, or data
+  corruption. Thanks to Bill, WA7NWP for reporting and helping out to
+  pinpoint the location (I could not reproduce but due to Open Source
+  Bill had the source too to allow debugging!). Another ham, Ron, also
+  reported the problem.
+- Added "Bugs.txt" to the distribution. How to report bugs and how to
+  help to track them down in Linux.
+- DIGI_NED.TXT has a reference to the originator of the idea to have
+  queries for text and Objects in APRS. It was not clear so somebody
+  could miss-interpreted as my idea.
+
+12-08-2000 version 0.1.5
+- Found a bug in digipeating on SSID. It should check if a frame is a
+  UI frame but due to a bug it checked that the frame is NOT an UI
+  frame. This made the function useless. Found by a user, thanks for
+  the report!
+- Added checking if received Originator, Destination and Digipeater
+  calls are valid. I saw some funny calls like "ERROR!" and "PPP___" on
+  the air (VHF), the first seemed to originated from TinyTrak devices
+  (saw that one multiple times from different operators)... Frames with
+  such invalid calls are not processed by DIGI_NED anymore.
+- DIGI_NED did not reliably detect local stations. Up to now a local
+  station was a station where none of the digipeaters carried a
+  'digipeated' bit. Because WIDEn-N does not set the digipeated bit
+  also when it is actually digipeated the determination of a station
+  was flawed or incomplete..  This caused Ping-Pong packets if the
+  first digi-call is of a station is WIDEn-N. The determination of a
+  local station is now changed, a local station has:
+
+  - no digipeaters (this was okay the way it was)
+  - or on the first digipeater:
+    - no 'digipeated' bit (H-Bit) is set and the SSID is 0 or bigger
+      than 7
+    or
+    - no 'digipeated' bit (H-Bit) is set and the digipeater call does
+      not finish with a digit between 1 and 7
+    or
+    - no 'digipeated' bit (H-Bit) is set and the final digit of the
+      digipeater call is not bigger than the SSID
+
+  In all other cases the station is not local. Stations using WIDEn-N
+  as first digi-call are now handled correctly and will not be detected
+  as 'local' after they are digipeated. This bug was found by a user,
+  thanks for the report!
+- Made the default distribution area for messages in the sample
+  DIGI_NED.INI a bit bigger. Messages are local but I got the
+  impression they are now a bit too-local now during tails in the
+  field.
+- Sample extended; when sending an object in the sample digi_ned.mes
+  file I now also send a confirmation messages. It was not always clear
+  that the response was an object.
+- When a query has multiple responses then they are separated by 10
+  seconds now - this was 5. This works better when mixing objects and
+  messages (objects are also separated by 10 seconds). Also gives more
+  reading time on reception.
+- On a multi-line response the second and subsequent lines took to
+  long to retransmit. The time to separate message transmissions should
+  not be doubled by the decay algorithm. The decay algorithm shall
+  re-transmit after 10, then 20, then 40 etc. up with a maximum of 10
+  attempts.
+- New rule "max_msg_hops:". If the number of digipeaters marked as
+  "used" in the digipeater list exceeds this value the digipeater
+  ignores the message form the user. Reason is that the answer will
+  never get back anyway with the paths specified with the
+  "message_path:" settings. When not specified the "max_msg_hops:"
+  setting is 8, which means there are no limits (paths with 9 hops do
+  not exist within the AX.25 protocol specification). This code is
+  contributed by KG4ECV, thanks Alex!
+- Block-list now split in 2 parts. The normal (old) block-list is
+  used to block calls for digipeating. A second list, "msg_block:" is
+  used to block calls for issuing queries towards the digi. This code
+  is contributed by KG4ECV (I merged the new code however with the
+  original block-code), thanks Alex!
+- Added descriptions to the documentation and sample-ini files.
+- The "owner:" rule can now take more calls. The first defined call
+  will be reported as owner with messages using the %o parameter. The
+  other calls are allowed to use the ?exit command to start remote
+  maintenance. These other calls can be your own call with appended
+  SSID or the call of a co-maintainer.
+- Changed the code: block.c and block.h is now call.c and call.h.
+  Functions in call.c are used to keep lists of calls. This is
+  currently used for owner, block and msg_block and will be used for
+  any future call-lists that may be needed.
+- When somebody else that an owner queries the digi with "?exit"
+  then no answer came back. Now it is processed like any other message
+  (you can put ?exit in digi_ned.mes if you like). Only owners will
+  end up in the shutdown procedure if "enable_exit:" in digi_ned.ini
+  allows it.
+- When an answer of a query started with one of the '%' variables,
+  like %o, the code misbehaved.
+- New build-in query 'date', returns date and time of the digipeater
+- In DOS you can now stop and restart logging with ALT-L. Logging
+  starts at startup but with ALT-L you can stop it. The logfile will be
+  closed so you can shell to DOS to rename or remove the logfile. With
+  ALT-L logging can be restarted when stopped, new date will be
+  appended to the existing logfile if present.
+- Queries do not need to be in lowercase but now mixed case can be
+  used. This is only for makeup of the file, queries are case
+  independent. I use uppercase to annotate short cuts now in the sample
+  message file.
+
+04-07-2000 version 0.1.4
+- Changed some info in the manual, using DosAPRS as example in
+  conjunction with KISS was a bad choice, DosAPRS appears not to
+  support KISS. Changed the description to refer to an anonymous APRS
+  program.
+- "preempt_keep:" now accepts wildcards. Should have been in the
+  previous release but I made an error and did not implement it
+  correctly.
+- New rule "preempt_never_keep:", calls that should never be kept, even
+  when it matches with "preempt_keep:" "preempt_never_keep:" can also
+  accept wildcards.
+
+02-07-2000 version 0.1.3
+- Added %1 to 'digi_ned -v' in run.bat so you can now give an
+  alternative .ini file on the command-line - Removed some
+  non-functional code in digipeat.c
+- Removed some "dump" residue from output.h and read_ini.c, the
+  function was long gone but the #ifdef was still present...
+- Added preemptive digipeating function. New rule in the .ini file:
+  "preempt:". With "preempt:" you can take packets before it is your
+  turn to take them according to the digipeater via-list. Description
+  in digi_ned.ini. Unused digipeater are taken out of the via list.
+- Added rule "preempt_keep:". Calls in this list are retained when
+  preempting. Normally unused digis before the call on which preempt
+  reacts are removed; if the call happens to be in the "preempt_keep:"
+  list the call is inserted again in the via-list on the right-hand side
+  of the call on which preempt reacted. Sound difficult here, look at
+  the examples in digi_ned.ini.
+- Objects returned on a query are now transmitted twice. The spacing
+  between Object's first transmissions is now 10 sec, this gives the
+  user more time to look at the deposit. The second deposit is
+  scheduled 60 seconds after the first one.
+- Sample objects do not have speed and heading indicators that do
+  not make sense. Unfortunately this is not 100% according to the APRS
+  spec but this done because Items do not work on popular equipment
+  (THD7).
+- Added 2 sections to the FAQ, how to setup a KISS network with
+  DIGI_NED and how you can setup a ZIP-lan.
+- Third party messages can be recursive. This is handled now to find
+  the originator of a message.
+
+18-06-2000 version 0.1.2
+- Message system changes, most message query/answers are now read from
+  a file, so the user can expand it with their own commands! I've put
+  some examples in the file to give an impression what you can do. The
+  basic idea is from one of the DIGI_NED users so more brilliant ideas
+  are welcome (I still have some in store still waiting for the right
+  moment for me).
+- New commands added, existing commands reformatted for display on a
+  TH-D7 12 char/line display.
+- Besides message 'ack' also 'rej' is recognized. On 'rej' the
+  messages are not retransmitted, the receiver of the messages is most
+  likely overloaded with data.
+- On multi-line responses spread the transmissions each 5 sec instead
+  of all at once. This avoids continuous transmission and also makes it
+  more easy for the receiver to handle the data.
+- When querying "?mheard <port>" you now get 4 calls per line instead of
+  6. The calls now fit on a 4x 12 character display (where the 4th line
+  cannot be completely used) of a TH-D7
+- Default "size_heard_list:" in digi_ned.ini changed from 100 to 40.
+  This will give 10 responses when the port is queried and the list is
+  full. The TH-D7 can hold 16 lines so we have some of the previous
+  messages retained. When making the list more than 60 the response
+  will not be completely captured by the TH-D7.
+- When sending queries to the digi the starting '?' is now optional
+- "mh" is now short for "mheard", both are recognized.
+- Switched to "large" memory model for DOS
+- ALT-D now gives a DOS shell in DOS
+- ALT-V toggles verbose mode in DOS
+- For DOS the queries can now also be done on the console keyboard
+- Message path in digi_ned.ini and d_relay.ini limited to one wide,
+  only the local area needs to be served...
+- General tidy-up of verbose messages
+
+01-06-2000 version 0.1.1
+- DigiTo: rules should only be executed on UI frames with PID F0,
+  changing the SSID of destination calls on connection-oriented
+  links gives a huge mess.
+- When a message was send to DIGI_NED via a TCP/IP tunnel then
+  DIGI_NED used the call of the sender of the AX.25 frame, in this
+  case the gate, as return address. The real sender is in the path
+  that is send with the data. DIGI_NED now uses the real sender
+  to direct the data to.
+- Added FAQ section to the documentation, which may be helpful to
+  understand what the software is doing.
+- Ran a spelling checker on the documentation.
+
+21-05-2000 version 0.1.0
+- Now you can make even smarter rules. The operations can now have
+  an optional number to specify how many digipeater calls shall be
+  marked as used by the DIGI_NED. Default is 1, but you can specify a
+  number from 0 to 8. With 0 no digipeater call is used up (used for
+  WIDEn-N digipeating), with 8 all digipeater calls are used up. The
+  value 2 is used for the last hop on TRACEn-N digipeating, both the
+  own call and the remaining TRACEn shall be marked as used on this
+  last hop.
+- Bug in "digito:" rule, the first new digipeater should be marked as
+  "used" normally. With the first change mentioned above the default is
+  now okay and when adding a number to the operation this can be set
+  any way you like.
+- Revised the default DIGI_NED.INI. After discussions on the APRS
+  Special Interest Group mailing-list (see http://www.tapr.org) it was
+  settled how WIDEn-N and TRACEn-N digipeating is supposed to work. For
+  WIDEn-N the own digipeater call is not put in anymore. This behavior
+  is now consistent with Kantronics KPC3+ TNC's. Also WIDEn calls are
+  not supposed to be picked up, even if they are not "used" yet. Some
+  TNC's seem to leave WIDEn on the last hop without the H-bit, which
+  indicates that this call was already used for digipeating, being
+  set.
+- A rule for plain and simple 'trace' was missing! I added this
+  omission now.
+- Problems with queries when using DosAPRS, apparently spaces are added
+  to messages and DIGI_NED could not recognize them anymore. Appended
+  spaces and tabs are now ignored.
+- Added the 'bind' command in the source, which I removed in version
+  0.0.7. Omitting this 'bind' leads to additional "NET" error messages
+  in the system log.
+- On transmit socket changed PF_AX25 to ETH_P_AX25, I hope this helps
+  against the "protocol 0000 buggy, dev ax0" messages in the syslog,
+  reports will be appreciated (this is a LINUX issue only). I cannot
+  very well verify this since I'm using a 2.0.36 kernel and this only
+  occurs in the 2.2 or newer kernels (I tried to modify the 2.0.36 to
+  report the same message but the condition does not occur).
+- Add text in digi_ned.txt on how to use DIGI_NED with IGATE software
+  under Linux
+- The Command/Response flag was set the wrong way around on DIGI_NED's
+  own beacon and message transmissions ("UI^" should have been "UIv")
+  The APRS specification does not define what is correct, "UIv" is what
+  the TH-D7E and TH-D700E seem to transmit. XAstir does "UI^". WinAPRS
+  is "UIv" most of the time but frames from WinAPRS and UIView users
+  are not consistent. My guess is that AGWPE does not actively set or
+  reset the C-Flag bits in the source and destination fields. Some of
+  the frames even have "UI" only, I think that is the old AX.25 v 1.0
+  format. It seems to be a real mess. I follow the TH-D7E and TH-D700E
+  now.
+- Added timestamp on verbose tracing
+- Added d_relay.ini sample DIGI_NED rules file for stations that should
+  only be a RELAY and not a WIDE.
+- Removed BEACON and ID from the "digi_to:" rule in DIGI_NED.INI, these
+  should be kept in the local area.
+
+07-05-2000 version 0.0.9
+- Changed distribution names of files
+        DNEXExxx.ZIP       - DOS exe file plus additional files
+        DNSRCxxx.ZIP       - DOS source wrapper, contains source
+                             .TGZ file, wrapped because brain-dead MSDOS
+                             does not understand long filenames
+        digi_ned-x.x.x.tgz - Source file for LINUX (contained in
+                             DNSRCxxx.ZIP)
+- Documented "erase" operation in digi_ned.txt document
+- With "logfile:" and no argument still an attempt is made to write a
+  log. This was noticeable when running from floppy. Fixed now.
+- Changed rules digi_ned.ini for wide7, wide6, ..., wide0, does
+  command substitution now instead of leaving anonymous wide[0-7] call.
+- Changed auto-reply system.
+  A specific command from a user is only accepted once in
+  "message_keep_time:" seconds, default: 900 seconds. When a user sends
+  the same command within this time again then DIGI_NED will not
+  respond, only acknowledge the message. This means for example that a
+  user cannot send two "?info" commands to DIGI_NED within this time,
+  on the second command DIGI_NED will not respond and only acknowledge
+  the message. If the user tries the "?info" command again after 900
+  seconds then the user will get a normal response on the "?info"
+  command. After sending an "?info" command a user can send another
+  command without any problems, for example "?up" will work normally. A
+  second "?up" command will not yield a response however. The reason
+  for this behavior is to avoid problems when two auto-responding
+  systems are starting to respond to each other, this will go on
+  infinitely if nothing is done about it. With this measure a message
+  will Ping-Pong only once and then it will be silent again. If a
+  quarter of an hour is not sufficient in your case then increase the
+  "message_keep_time:" value.
+- Changed "send:" command, the first call in the path is the destination
+  call, use of DIGI_DEST call is allowed too. Changed the description in
+  the documentation and .ini file too.
+- The code ensures now that the beacon text is terminated by a <CR>, if
+  the beacon file does not contain a line terminator than DIGI_NED will
+  add a <CR> at the end of the beacon text itself.
+- Added the "send:" command to "digi_ned.ini" to send a station
+  identification, this "send:" command uses "digi_id.ini".
+- When taking a closer look a the response of the ?APRST command in
+  the latest specification I found that DIGI_NED was missing a colon at
+  the end of the message, added now.
+- The new APRS specification now also specifies the format for ?PING?,
+  DIGI_NED now uses the specified format instead of the WinAPRS format.
+
+29-04-2000 version 0.0.8
+- Always print a startup message, also in non-verbose mode, to avoid
+  confusion that the program is hanging.
+- Old data check now also looks at the originator, this prevents
+  mishaps if another station happens to send data with an equal CRC
+- "Echo:" rule is gone and replaced by "DigiTo:". "DigiTo:" differs
+  in 2 ways from echo. First if all it does not automatically add the
+  DIGI_CALL. Secondly it does SSID replacement on the destination
+  address. This is used for intelligent digipeating on the destination
+  SSID. Added rules for this to digi_ned.ini.
+- Wildcard matching of calls changed.
+  When '*' is used and additional characters follow after the '*' then
+  characters in the callsign to check will be skipped until a match is
+  found again, from that point checking will proceed. Example: Using
+  W*E will match WIDE but not W0EXT; after the '*' the code will look
+  for an 'E' and proceed checking from there. In case of matching with
+  WIDE the '*' will skip the 'I' and 'D' characters and proceed
+  comparison at the 'E'. In case of matching with W0EXT the '*' skip
+  over the '0' character and also proceed comparison at the 'E'. Since
+  'E' is not equal to 'EXT' the match will fail for W0EXT. Typical use
+  for this, and the prime reason why this is implemented, is to enable
+  checking on SSIDs. You can use '*-4' to match any call with 'SSID'
+  '4'. This is for digipeating on destination-call SSIDs
+- Changed documentation to English due to more and more international
+  interest.
+- digi_ned -h did not give correct output, fixed.
+- response to ?ping? and ?APRST slightly changed, does now match with
+  WinAPRS except indication of transmitting DIGI with a * symbol
+- ?APRST differs from ?ping?, it doesn't have a "PATH= " prefix.
+- Added more exit-code usage examples to "run.bat" to make it more
+  useful to use as template
+- Added syntax of commands in .ini file to digi_ned.txt
+- Relaxed checking for ?APRS? query a bit
+
+16-04-2000 version 0.0.7
+- Changed startup message for port initialization when running LINUX
+- Method for handling ?exit completely changed. Now ?exit is
+  accepted from everywhere, a shutdown announcement is transmitted
+  in the local area (no digipeaters, transmitted at most 3 times) and
+  when that message is acknowledged the digi will exit. If not
+  acknowledged the digipeater will proceed normally.
+- Interface towards AX.25 in the Linux kernel could be simplified,
+  'bind' is not needed.
+- Error in interpretation of the ports in "local:", I used the wrong
+  variable to test against... I hope it works now as advertised
+- Dump of output now shows the frame as it will be transmitted through
+  the local port instead of only a message (due to the previous bug
+  I guess nobody has seen this output anyway :-) ).
+- Startup changes:
+  Now DIGI_NED is silent at startup (unless you make an error in the
+  parameters). To get verbose output use the '-v' flag. For help
+  use the '-h' flag. For LINUX the ports are specified with the '-p'
+  flag, the "digi_lnx.ini" file is gone (was a hack anyway).
+  Verbose output will always appear in a logfile, even when the '-v'
+  option is not used.
+- Known bug: "protocol 0000 buggy, dev bc0" type messages in the
+  system log. Could not find a solution yet. I'm using old AX.25
+  tools with 2.0.36 kernel; this combination does not report this
+  problem. I don't know if the latest kernel/tools still report this
+  problem.
+- The default directory for "digi_ned.ini", the beacon file(s) and
+  the logfile is now the directory containing the digi_ned executable.
+  To force reading from the current directory use "./" or ".\" in front
+  of the filename or supply a full-path.
+- Added '?' to the "data_prefix:" so the "?APRS?" query will also
+  be remembered only a short time (10 seconds in the default
+  digi_ned.ini file).
+
+09-04-2000 version 0.0.6
+- Ease check on ?exit a little; don't check on To: call anymore, now
+  WinAPRS can be used which has a fixed To: address.
+- Left "logfile" on in sample digi_ned.ini, now switched off
+- Included sample script "digi_ned.sh" to start digi_ned in background
+  on Linux (sample build on request for a Ham, supplied here because I
+  had already build anyway :-) )
+
+02-04-2000 version 0.0.5
+- assignment of "local" ports, usable for covering black-spots.
+- ?exit command can now have an optional number e.g. ?exit 15
+  the number is used as exit-code (in this example 15)
+- INCLUDE in makefile not longer dependent on old AX25 tools
+- commands without sequence numbers also accepted now
+- TCPIP tunneled messages now handled correctly
+- ?APRST accepted as substitute for ?ping?
+- ?APRSM will resent unacked messages to the requester
+- Call-comparison in message fixed (didn't check full length)
+- Changes to the default digi_ned.ini: handling of WIDE-N,
+  paths changed from WIDE,WIDE,TRACE5-5 to WIDE,TRACE6-6
+- Now message_path definition per port, multiple definitions for one
+  port possible
+- Removed not needed variable, added parameter -Wall to gcc for
+  debugging in Makefile
+
+Version 0.0.4 and earlier
+- First source code release.
+- Support for Linux
+- Fixed bug in "mheard <port>"
+
+APRS[tm] is a Trademark of Bob Bruninga,
+his home page is at "http://web.usna.navy.mil/~bruninga/aprs.html"

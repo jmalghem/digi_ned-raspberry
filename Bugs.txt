@@ -1,0 +1,80 @@
+About bugs and bug reporting
+----------------------------
+
+If you find bugs in DIGI_NED, which I hope you will not, then please
+report them to me at "pe1dnn@amsat.org". This enables me to find and
+fix it. Of course you may help to investigate or even send code
+patches!
+
+In a DOS environment there is not much you can do to debug. For Linux
+this is different. Most of the time when something goes wrong you will
+get a Segmentation Fault or another signal by which the Linux kernel
+kills the misbehaving program. Please report this if it happens and
+you are more or less sure that your system is okay (in Linux, programs
+also die with Segmentation Faults if for example access to the RAM is
+not 100% okay).
+
+If you want can provide me with more input so I can make a fix faster.
+You can do the following:
+
+First change the Makefile. The Makefile contains two "CC" lines, one
+commented out and one which is used. Now change
+
+#CC = gcc -ggdb -Wall
+
+by removing the '#' symbool, and at
+
+CC = gcc -O6
+
+add the hash symbol. Then execute "make clean", "make depend" and "make".
+After you compiled with the alternative CC line you will have a version
+with debug information for 'gdb'.
+
+When a Unix (Linux) program crashes then a so called "core" file is created.
+By using "gdb core" you should be able to see at what spot in the program
+it went wrong.
+
+Another way is to run the program via "gdb". That works for sure.
+You can run digi_ned in "gdb" like this. Start "gdb" with the
+"digi_ned" executable as argument.
+
+$ gdb digi_ned
+
+You get some startup text and a prompt.
+
+After the prompt you type "run" and also supply the parameters you would
+normally supply to digi_ned. So for me for example this is:
+
+> run -p radio -p lfbb -v
+
+Then "gdb" reads and processes all the information it needs and starts
+running digi_ned.
+
+When you get the segmentation fault again, you will end up at the "gdb"
+prompt. "gdb" will show at what point it crashed in the code, that is
+what I would like to know.
+
+Then you can type "bt" to the prompt which will show the path through the
+code so it is visible how the failing part was invoked. Of course that is
+also interesting to me to find the problem.
+
+Finally with 'q' you can exit "gdb" to get back to the Linux prompt. I
+hope this is clear. Please do not be offended if you already knew this...
+Most people don't so that why I tell it.
+
+If you don't feel like conducting this procedure, fine. Please report the
+problem anyway. Maybe I can find it on my own - although with your help
+this would be faster obviously.
+
+I hope you will never need what I wrote here. I try my best to deliver
+a good stable product, but I am also capable of goofing up, like anybody
+else.
+
+Kind regards,
+
+Henk - PE1DNN.
+
+Bug reports to: pe1dnn@amsat.org. Please don't send megabytes of data,
+this is only a dail-up account and we also don't have flat rate telephone
+charges...
+

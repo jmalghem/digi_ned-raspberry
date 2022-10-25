@@ -1,0 +1,361 @@
+INTRODUCTION
+
+This document describes the satellite-tracking module for DIGI_NED. For a
+description of the functionality, please see the sattrack.doc file (Word 2000
+format). The document you are reading now is intended for digi owners and
+maintainers who wish to include this module in their digi.
+
+I've chosen to implement the satellite tracking option as a separate module
+so that the digi owner has a choice whether or not to include this option.
+When this option is included, the executable will grow to about 1/3rd of the
+current size of DIGI_NED. To some digi owners this might be objectionable for
+technical reasons, so they need to have the choice to exclude it.
+
+I will try to explain how to include the satellite-tracking module in your
+current DIGI_NED implementation in eight sections, Necessary Files,
+Compilation (Linux and DOS), Configuration, Sample Configuration, Testing,
+Maintenance, Suggestions and Conclusion.
+
+
+===============================================================================
+NECESSARY FILES
+
+Actually, the satellite-tracking module needs only one file, besides the
+sources of course if you compile it under Linux. This file is the Satellite
+Information Database. This file contains 24 satellite entries. A fully
+functional and up to date (as of March 2001) database is included with
+this distribution of DIGI_NED. The name of the file is digi_ned.sat.
+
+Another file that is of interest and is included with this distribution is
+the digi_ned.tle file. This file contains update information for the
+Satellite Database.
+
+
+The Satellite Database File:
+
+This database is stored in a flat ASCII file and can be edited with any text
+editor. For each satellite entry there are 3 lines of information in the
+database. The first line contains some general information of the satellite
+like its name, its 4 letter Amsat designator, uplink and downlink frequencies
+and the mode. The next two lines contain the NASA Two Line Element
+information for that satellite. 
+
+You can delete a satellite by simply deleting the three lines corresponding
+to that satellite.
+
+A satellite can be added by simply editing the database file and inserting
+the three lines of information of that satellite. You can obtain the TLE
+information through Amsat, ARRL, Norad or NASA. Make sure that the first line
+is formatted correctly. Just look at the line format for the other satellites
+to see how the first line needs to be formatted.
+
+The maximum number of satellites that can be specified in the database is 24.
+Currently it contains all satellites that are of interest to Amateur Radio,
+plus the International Space Station (ISS). Usually this file resides in the
+same directory as the DIGI_NED executable. See the Configuration section for
+more information about the location of the database.
+
+
+The Update Database File:
+
+This file contains Two Line Elements (keppler sets) of satellites that you
+want to update the satellite database with. Usually it is the simply the
+content of a message from Amsat or ARRL containing the updated keppler sets.
+Just subscribe to either the Amsat or ARRL list and when you receive a
+message from them, simply copy the message into the update file and issue the
+update command "utle". Usually this file resides in the same directory as the
+DIGI_NED executable. See the Configuration section for more information about
+the location of the update file.
+
+For more information about updating the database, see the maintenance
+section.
+
+
+===============================================================================
+COMPILATION (Linux):
+
+Near the top of the Makefile file you will find the following section:
+
+#  if satellite tracker needs to be included then uncomment the next line
+#DEFS += -D_SATTRACKER_
+
+To include the satellite-tracking module in DIGI_NED make sure that the
+pound sign (#) preceding the "DEFS += -D_SATTRACKER_" line is removed. 
+Then issue a "make clean" to remove old code and then issue a "make depend"
+to resolve code dependencies. Finally run "make" (no parameters) to build
+the executable.
+
+In the current distribution de '#' is removed by default. If you don't
+want to use the sat tracker then add the pound sign (#) as shown above.
+
+
+Compilation (DOS):
+
+When compiling with BCC3.1 the sattrack files need to be added to the project
+file. To do this, open the project menu, this can be done through the menu
+Window->Project. Press insert in the Project window. A dialog window appears.
+In the Name field first type "sat.c" and then press tab. Click the Add button.
+Then enter "predict.c in the Name field and hit TAB. Click the Add button. Now
+the dialog can be closed, click Done. At this point we have added the new 
+sources to the project.
+
+Now we have to add the definition _SATTRACKER_. Otherwise, DIGI_NED will still
+compile without this function. To do this open the Options Menu. Select
+Compiler. Choose the entry Code generation... Now you have a dialog with
+a number of fields. One of them is a field with the label "Defines". There
+you fill in _SATTRACKER_. After you're done, press OK.
+
+In the project file shipped with the DIGI_NED source the sattracker is
+already enabled. If you don't want to use the sat tracker remove the
+_SATTRACKER_ definition in the Options->Compiler->Code generation... dialog.
+
+You can build the code by selecting "Build all" from the Compile menu.
+
+===============================================================================
+CONFIGURATION:
+
+The satellite tracking module is fully configurable through the *.ini file
+which is read at startup of DIGI_NED. This module introduces several new
+rules, which I will describe below. I'll also include an example of the rules
+section.
+
+The first rule is actually not a new one, but one that was introduced when the
+dx functionality was implemented in DIGI_NED. This is the digi_pos: rule. The
+satellite tracking module uses this rule to determine the position of the digi
+and uses it in the calculation necessary to predict passes of a satellite.
+See the DIGI_NED documentation for an explanation of these rules. Example:
+
+digi_pos: 5213.61N 00600.00E
+
+The position may also be defined in through the digi_pos_file (see DIGI_NED
+documentation) as:
+
+digi_pos_file: digibcon.ini
+
+The altitude rule indicates at what altitude, in meters, the digi resides.
+It's not a very critical parameter but we do need it for the calculations. 1
+meter is approximately 3.28 feet. Example:
+
+digi_altitude: 10
+
+As a digi owner you also need to decide if you want the information AOS time
+information to be displayed in either UTC or local time. This has nothing to
+do with the time of creation of the object. That will always be displayed in
+UTC per APRS Specifications. This rule accepts two values. "1" for local
+time, "0" for UTC. If one chooses local time, then AOS information will be
+displayed in the object as "AOS@08-02 17:00 LOC". If UTC is chosen then the
+info will be displayed as "AOS@08-02 22:00 UTC" Example:
+
+digi_use_local: 1
+
+For satellite tracking you also need to specify the UTC offset for the digi.
+For EST this would be -5. Make sure you correct this for daylight savings.
+Example:
+
+digi_utc_offset: -5
+
+To specify the interval at which objects should be transmitted when a
+satellite is in range, use the sat_in_range_interval rule. The inteval is
+specified in minutes. Example:
+
+sat_in_range_interval: 1
+
+To specify the interval at which objects should be transmitted when a
+satellite is out of range, use the sat_out_of_range_interval rule. The
+interval is specified in minutes. Example:
+
+sat_out_of_range_interval: 10
+
+You can set the maximum time you want a satellite to be tracked with the
+track_duration rule. It takes most FM birds to orbit the earth in about one
+and a half hour. So a good choice is something just above that. This rule has
+been introduced to prevent DIGI_NED from having to track a satellite
+indefinitely when someone requests it. If a person needs to track it longer
+than they can just reissue the request. Track duration is specified in
+minutes. Example:
+
+track_duration: 105
+
+The file containing the satellite database can be defined by the
+satellite_file rule. You can specify a path if you want. If you don't, then
+the module will assume it's located in the same directory as the DIGI_NED
+executable. Example:
+
+satellite_file: digi_ned.sat
+
+The file containing Two Line Element (TLE) information from which DIGI_NED
+can update its satellite database is specified through the update_tle_file
+rule. The same goes as for the satellite database file specification; you can
+specify a path, but if you omit the path, DIGI_NED will assume it is located
+in the same directory as the DIGI_NED executable.
+
+update_tle_file: digi_ned.tle
+
+
+===============================================================================
+SAMPLE CONFIGURATION:
+
+The following a sample of the Satellite Tracking rules that needs to be
+present in the *.ini file which is read by DIGI_NED at startup:
+
+
+; Satellite Tracking Attributes
+;
+; The following attributes are used by the satellite-tracking module of
+; DIGI_NED. Make sure that digi_pos is defined either in the DX function
+; handling portion of this file or below. Alternatively, you can also
+; specify the position in the digibcon.ini file, but don't forget to 
+; include the "digi_pos_file: digibcon.ini"-rule. The latter method is 
+; preferred because then you only have to specify (and change, if 
+; necessary) the position of the digi only once. This position information 
+; together with the other attributes are needed for satellite tracking
+; calculations.
+;
+; Position of the digi...
+;digi_pos: 3256.84N 08001.92W (KG4ECV-10)
+; ...or specify as:
+digi_pos_file: digibcon.ini
+;
+; Altitude of the digi in meters (1 meter is approx. 3.28 feet, not critical).
+digi_altitude: 10
+;
+; Use local time (1) or UTC for the display of AOS time in objects.
+digi_use_local: 1
+;
+; UTC offset for the digi (EST = -5). Make sure to correct this for 
+; daylight savings.
+digi_utc_offset: -5
+;
+; Time (in minutes) between transmission of satellite objects when satellite.
+; is in range.
+sat_in_range_interval: 1
+;
+; Time (in minutes) between transmission of satellite objects when satellite
+; is out of range.
+sat_out_of_range_interval: 10
+;
+; Duration time (in minutes) of tracking.
+track_duration: 105
+;
+; Name of the satellite information database.
+satellite_file: digi_ned.sat
+;
+; Name of the TLE file to update the satellite information database from.
+update_tle_file: digi_ned.tle
+
+
+==============================================================================
+TESTING
+
+Testing the module is very simple. Just start DIGI_NED and you'll see message
+appearing informing you that it successfully read the satellite database and
+that it was able to read the information about the digi (QTH information,
+such as position, altitude etc.). You will be informed if any information
+vital to the satellite tracking module is missing.
+
+
+Inquiry:
+
+The next step is issuing the inquiry command "sat". Send the command "sat
+ao40" as a regular APRS message to your digi. DIGI_NED will acknowledge this
+message and sends you a message back informing you if the satellite is in
+range or not. DIGI_NED will also transmit an object indicating the
+satellite's position. The status text of the satellite object contains either
+information about the satellite's next pass when it is out of range, or it
+will contain tracking information if it's within range. The first will look
+like:
+
+      AOS@08-02 17:00 UTC
+
+The latter will look like:
+
+      U145.823 7D435.398 1 E71 A123 MB
+
+
+Tracking:
+
+To test the tracking capabilities, simply issue the tracking command "trk".
+For example, send "trk ao27" as a regular message to your digi. DIGI_NED will
+then respond in exactly the same way as in the inquiry mode, described above,
+except that it will continue transmitting objects. If the satellite is in
+range it will transmit new objects with an interval set by the
+sat_in_range_interval rule, and when the satellite is out of range it will
+transmit objects with an interval set by the sat_out_of_range_interval rule.
+This will continue until the maximum tracking duration, specified by the
+track_duration rule, has been reached.
+
+
+Update:
+
+Test the update capability by issuing the update command "utle". IMPORTANT:
+This command can only be issued by the digi owner as specified by the
+digi_owner: rule! Send this command as a regular APRS message to your digi.
+DIGI_NED will respond either with a "update complete" message or with a
+message informing you of a problem. ("no filename", "invalid filename" or
+"Unable to open input file!")
+
+
+This concludes the testing phase. If all three commands work then you're in
+business and you can serve your local APRS community with satellite tracking
+data.
+
+
+===============================================================================
+MAINTENANCE
+
+Maintenance of this module is very easy. Just download a new keppler sets in
+TLE format from the Amsat website (http://www.amsat.org) or from the ARRL
+website (http://www.arrl.org). Copy this into the update file specified by
+the update_tle_file rule and issue the "utle" command. Do this about every
+two weeks. Every week is better. You can also subscribe to a mailing list
+on both sites which will send you a new file every week. Take advantage
+of these services so that you will be reminded to update your satellite 
+database on a regular basis.
+
+Don't worry if the file you are downloading also contains satellites or other
+space objects that you have not defined in your satellite database. The
+update command will simply ignore these objects. Also, if the file you
+download does not contain a satellite you have in your database then the
+satellite will not be deleted from your database.
+
+
+===============================================================================
+SUPPORTED SATS
+
+DIGI_NED has a build-in query which will inform the APRS user which
+satellites are available for tracking on your digi. The query can be
+called in 2 different ways. The shorthand is to use the "sats" command.
+Another option is to issue the "sat" command with a satellite called "list",
+e.g. "sat list". In both cases the digi will respond with a list with all
+available satellites. For example:
+
+?sats
+AO10 UO11   UO14 AO16   WO18 LO19   FO20 UO22
+KO23 KO25   IO26 AO27   FO29 UO36   GO32 TO31
+SO33 RS12   RS15 OO38   AO40 SO41   SO42 ISS_
+
+(note that the formatting is optimized for display on a 12 character 2 line
+display)
+
+Another suggestion would be to issue a bulletin or announcement to the local
+APRS network announcing that you have this service available. In fact it may
+be a good idea to do this if you have an active Tiny Web Pages server on your
+DIGI_NED digi. This is pretty much the only way to inform people that you
+have this service available (besides the regular status text in your posit
+of course).
+
+
+===============================================================================
+CONCLUSION
+
+I hope this module is somewhat useful to you or your local APRS community. If
+not just compile DIGI_NED without it.
+
+If you have any suggestions, ideas or find bugs, please don't hesitate to
+email me at kg4ecv@amsat.org.
+
+Thanks and 73,
+
+Alex Krist (KG4ECV)
+[with additions to the text by PE1DNN]
+

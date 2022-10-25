@@ -1,0 +1,130 @@
+This is the README of DIGI_NED for DOS and Linux
+
+To compile DIGI_NED for DOS unpack the source in the directory C:\APRS\, then
+use de IDE of BORLAND C++ 3.0 to compile. If another directory is used then
+the project file needs to be setup again.
+
+To compile for Linux any directory can be used. See directions in
+digi_ned.txt on how to compile DIGI_NED for Linux.
+
+The directory "Distrib" contains some scripts used to generate a DOS
+distribution, the batch-files where used with 4DOS and will not work
+with COMMAND.COM. Also the InfoZip "zip" program should be present in
+the PATH.
+
+The directory "ax25_mac" contains the source of the MAC layer driver, only
+used for DOS. It is compiled using MSVC++ 1.5 and MASM 5.0; use nmake to
+compile.
+
+The directory "sample" contains demonstration programs used with the
+sample digi_ned.mes.
+
+DIGI_NED is "free" software as defined in the GNU General Public Licence,
+see COPYING for details.
+
+The runtime parts for DOS are:
+    README       - this readme file
+    COPYING      - GNU licence file
+    Changes.txt  - Changes with respect to previous version
+    Bugs.txt     - How to submit and help out with bugs
+    DNown102.zip - OWNER manual in HTML. This will become the new
+                   documentation for DIGI_NED, "digi_ned.txt", "Sattrack.txt",
+                   "Sattrack.doc" and a lot of the commenttext in
+                   "digi_ned.ini" will vanish. Extract using InfoZip's
+                   "unzip" or any other unzipper that preserves directories
+                   and understands long filenames.
+    DN_files.png - Picture showing the relation between all the files below
+    run.bat      - sample startup file
+    ax25_mac.exe - ax25 mac-layer driver
+    ax25_mac.ini - mac-layer driver sample .ini file
+    ax25_mac.txt - mac-layer documentation
+    digi_ned.exe - digipeater MSDOS executable
+    digi_ned.ini - sample digipeater rules file
+    digi_ned.mes - sample digipeater message query/response file
+    digi_ned.sat - sample satellite file
+    digi_ned.tle - sample two-line-elements file to update the .sat file
+    d_relay.ini  - sample RELAY only digipeater rules file
+    d_relay.mes  - sample minimal message file for use with RELAY
+    digi_new.ini - sample rules file for the New Paradigm (see Bob's web)
+    digi_nsr.ini - sample rules file for the Non Source Routing idea (AE4PL)
+    digi_id.ini  - sample station identification
+    digibcon.ini - sample beacon file, now you know where I live...
+    digi_tlm.ini - sample telemetry information beacon file
+    digi_ned.txt - DIGI_NED manual
+    Sattrack.txt - Documentation of the satellite tracking module
+    Sattrack.doc - White-paper about the satellite tracking module
+    Sample.zip   - Directory with sample "whois" server. Unpack with "-d" flag.
+    Ideas.txt    - ToDo list and ideas for the future
+
+The runtime parts for Windows (using CygWin DLL) are:
+    README       - this readme file
+    COPYING      - GNU licence file
+    Changes.txt  - Changes with respect to previous version
+    Bugs.txt     - How to submit and help out with bugs
+    DNown102.zip - OWNER manual in HTML. This will become the new
+                   documentation for DIGI_NED, "digi_ned.txt", "Sattrack.txt",
+                   "Sattrack.doc" and a lot of the commenttext in
+                   "digi_ned.ini" will vanish. Extract using InfoZip's
+                   "unzip" or any other unzipper that preserves directories
+                   and understands long filenames.
+    DN_files.png - Picture showing the relation between all the files below
+    digi_ned.exe - digipeater MS-Windows (CygWin) executable
+    cygwin1.dll  - CygWin DLL to run programs written for Unix in Windows
+    digi_ned.ini - sample digipeater rules file
+    digi_ned.mes - sample digipeater message query/response file
+    digi_ned.sat - sample satellite file
+    digi_ned.tle - sample two-line-elements file to update the .sat file
+    d_relay.ini  - sample RELAY only digipeater rules file
+    d_relay.mes  - sample minimal message file for use with RELAY
+    digi_new.ini - sample rules file for the New Paradigm (see Bob's web)
+    digi_nsr.ini - sample rules file for the Non Source Routing idea (AE4PL)
+    digi_id.ini  - sample station identification
+    digibcon.ini - sample beacon file, now you know where I live...
+    digi_tlm.ini - sample telemetry information beacon file
+    digi_ned.txt - DIGI_NED manual
+    Sattrack.txt - Documentation of the satellite tracking module
+    Sattrack.doc - White-paper about the satellite tracking module
+    Sample.zip   - Directory with sample "whois" server. Unpack with "-d" flag.
+    Ideas.txt    - ToDo list and ideas for the future
+
+The runtime parts for LINUX are:
+    README       - this readme file
+    COPYING      - GNU licence file
+    Changes.txt  - Changes with respect to previous version
+    DNown102.zip - OWNER manual in HTML. This will become the new
+                   documentation for DIGI_NED, "digi_ned.txt", "Sattrack.txt",
+                   "Sattrack.doc" and a lot of the commenttext in
+                   "digi_ned.ini" will vanish. Extract using InfoZip's
+                   "unzip" or any other unzipper that preserves directories
+                   and understands long filenames.
+    DN_files.png - Picture showing the relation between all the files below
+    Bugs.txt     - How to submit and help out with bugs
+    digi_ned.sh  - sample script to start digi_ned in background
+    digi_ned     - digipeater executable
+    digi_ned.ini - sample digipeater rules file
+    digi_ned.mes - sample digipeater message query/response file
+    digi_ned.sat - sample satellite file
+    digi_ned.tle - sample two-line-elements file to update the .sat file
+    d_relay.ini  - sample RELAY only digipeater rules file
+    d_relay.mes  - sample minimal message file for use with RELAY
+    digi_new.ini - sample rules file for the New Paradigm (see Bob's web)
+    digi_nsr.ini - sample rules file for the Non Source Routing idea (AE4PL)
+    digi_id.ini  - sample station identification
+    digibcon.ini - sample beacon file, now you know where I live...
+    digi_tlm.ini - sample telemetry information beacon file
+    digi_ned.txt - DIGI_NED manual
+    Sattrack.txt - Documentation of the satellite tracking module
+    Sattrack.dos - White-paper about the satellite tracking module
+    Sample.lnx   - Directory with sample "whois" server. Change digi_ned.mes!
+    Ideas.txt    - ToDo list and ideas for the future
+
+The runtime parts for LINUX are:
+
+DON'T FORGET TO EDIT "digibcon.ini" AND "digi_id.ini" TO CHANGE TE POSITION
+TO WHERE YOU LIVE AND TO YOUR CALL!
+(Strange stations seem to appear in my home-town...).
+
+Also you most likely want to change "digi_ned.mes" to reflect the
+situation in your area...
+
+Henk de Groot - PE1DNN

@@ -1,0 +1,461 @@
+#
+#  Copyright (C) 2000-2009  Henk de Groot - PE1DNN
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#  Please note that the GPL allows you to use the driver, NOT the radio.
+#  In order to use the radio, you need a license from the communications
+#  authority of your country.
+#
+#------------------------------------------------------------------------------
+#
+#  This file contains auto-reply strings for simple text reponses.
+#
+#  Here you can define aditional queries to complement with build in
+#  queries. The only queries which are build-in are the queries which
+#  return a runtime-dependent reply string. All queries which have
+#  static textst are defined in this file.
+#
+#  %d will be replaced by the digipeater call
+#  %o will be replaced by the digi owner call
+#  %v will be replaced by the DIGI_NED version
+#  %b will be replaced by the DIGI_NED boot-time
+#  %p will be replaced by the number of active ports
+#  %q will be replaced by the complete query as received (lowercase)
+#  %x will be replaced by the complete packet as received, including header,
+#     in TAPR TNC format. Small note: the "originator" call will be
+#     replaced by the "real" originator when there is also a 3rd party
+#     header in the packet, so the true originator is always present at
+#     In the packet the control-characters are replaced by a "." (except
+#     those used in MIC-E). Single quotes are also replaced by a "." so
+#     for execution from a query the whole %x variable can be enclosed
+#     in single quotes to avoid problems with redirect characters in the
+#     packet and more such problems.
+#
+#  Syntax is simple, each query starts with an ?, the lines following it
+#  up to the next query is the response, empty lines and lines starting
+#  with '#' are ignored. 
+#
+#  The first character of each line is interpreted and determines how
+#  the answer is send back. These characters are the following:
+#
+#  ';': Lines stating with ';' are transmitted as "objects".
+#  ')': Lines with ')' are transmitted as "items".
+#  '^': Lines with '^' are transmitted as is, however without the '^'
+#  ':': Lines with ':' are transmitted as messages but this time exactly
+#       the way they are written down, so these lines includes the address
+#       (See ?BLN query below for a bulletin example).
+#  '!': These lines do not return anything but start runs a program
+#       instead. During the run of the program the digi is inactive so keep
+#       these programs short. For an example see the "?whois" query.
+#  '!!':This is just like the '!' above. Unlike the '!' above you need
+#       to be owner of the digi to have the program executed however.
+#       For an example see the ?sysop example query
+#       the digi is inactive so keep these programs short.
+#  '>': The data to return is read from a file. This can be the output
+#       of a program for example. The contents of the gile is send back as
+#       a normal message. The file may contain multiple lines.
+#
+#  The '\' character can be used as 'escape' if you want your message to
+#  start with '?', '#', ')', ':', '!' or '>'. If you want the message to
+#  start with a '\' character then use "\\".
+#
+#  Aliasses for the same query can be specified, for example
+#  ?help|?h responds to query "?help" and shortcut "?h".
+#  Also wildcards can be used. ?h* for example matches all queries that
+#  start with ?h. Be carefull with this not to create ambiguity which
+#  will be confusing!
+#
+#  Wild cards are:
+#
+#      *  Matches any 0 or more character(s).
+#      ?  Matches any 1 character.
+#      @  Matches any alpha character.
+#      !  Matches any digit.
+#
+#  When '*' is used and additional characters follow after the '*' then
+#  characters in the received query will be skipped until a match is
+#  found again, from that point checking will proceed.
+#
+#  Example:
+#  Using "s*on" will match "station" but not "stat"; after the '*' the
+#  code will look for an 'o' and proceed checking from there. In case
+#  of "stat" the 'o' is not found and the match fails. When matching
+#  with "stations" the match also fails since the part from the 'o' until
+#  the end is not the same. "s*on*" will match both "station" and
+#  "stations". For an example look at the "?whois" query below that uses
+#  a wildcard to match any argument following whois.
+#
+#  On all queries the ? is optional, so you can also use "help"
+#  and "h" with the above example (same applies to the build-in
+#  queries like "mheard" etc). Query strings can be mixed case
+#  (doesn't matter), the user can use mixed case when he queries
+#  DIGI_NED.
+#
+#  The query that only consists of one '?' is a special one since
+#  this the response for this query is also the default reply on
+#  any query that doesn't match.
+#
+#  Lines, query lines and answers, can be up to 67 characters,
+#  longer lines will be truncated In this example file I allligned
+#  the messages to nicely fit on the 12 character THD7 screen
+#
+#  It is strongly recommended to keep these basic entries like ?help
+#  ?digi, ?voice, ?bbs etc. so new people on the move which enter
+#  your system can guess what to expect without having to dig through
+#  the help first. I take a risk here by allowing you to make changes,
+#  please think about the mobile and stations not familiar with your
+#  neigborhood and area. I think they will appriciate to find
+#  the commands ?voice and ?net to work to make initial contact
+#  with you!
+#
+
+#
+# Group 0, Help information
+#
+# Help text that should lead to all the other commands
+#
+# ? is also the default text which is returned if no valid command
+# was found.
+?
+Use "Help"  for topics
+
+# !ok and !error is used to reply the result of remote command execution
+# !ok -> command executed
+# !error -> command failure
+?!ok
+Command     accepted
+
+?!error
+Command     rejected
+
+?H|Help
+Use: H1, H2 H3..H8 or   use "List"  for all
+
+#
+# Help sub division
+#
+?H1
+H1: Type ID Up DATE Ver
+
+?H2
+H2: PING?   APRS? APRSD APRST APRSM APRSP
+
+?H3
+H3: Ports DX MHeard TLM
+
+?H4
+H4: VOice   NEt LOcal
+
+?H5
+H5: BBs Dxc LAp DIgi Qrg
+
+?H6
+H6: Event
+
+?H7
+H7: SAT TRK SATS
+
+?H8
+H8: OBject  (last topic)
+
+#
+# List all possible commands
+#
+?L|List
+List without ? prefix   (10 lines)
+APRS APRS?  APRSD APRST APRSM APRSP BBs Dxc
+Boot Event  City DX Dxc DATE DIgi   Food FREQ
+H1 H2 H3 H4 H5 H6 H7 H8 Gemeente RS FAst Help
+HOspital ID HOTel ITems HAm Keizer  Inf List
+LOcal MOtel Medium Name MHeard NEts OBjects
+Owner PING? PAcket LAp  PALace Qrg  PALeis
+PHone Ports POlice VALK POlitie QSo QUality
+REcr Relay  REStaurant  ROndes Type SHops NS
+THeater TLM THeatre UHf TRain VOice Version
+Up VHf VVV  ZOO BLN SAT Ziekenhuis  TRK Sats
+
+#
+# Group 1, about the digi itself
+#
+?T|Type
+DIGI_NED: by PE1DNN
+
+?ID|N|Name
+Digi name   %d
+Digi owner  %o
+
+?O|Own|Owner
+Digi owner  %o
+
+?U|Up|B|Boot|APRSS
+Up since:   %b
+
+?V|Ver|Version
+Ver: %v
+
+#
+# Group 2, APRS responses
+#
+# All handled internally
+#
+# Commands from the APRS specification
+#
+
+#
+# Group 3, Port and heard information
+#
+# Active ports on this digi and heard direct stations
+#
+?P|Port|Ports
+Digi has %p  port(s)
+
+?MH|MHeard
+Use "MHeard <port>" or  use "MHeard <call>"
+MHeard stat = statistics
+
+?MH <port>|MHeard <port>
+<port> is a number (0-8) Example:   mheard 1
+
+?MH <call>|MHeard <call>
+<call> is a call, e.g.  use mheard  pe1dnn-2
+
+?DX
+Use here "DX <port>" or  use    "DX <call>"
+
+?DX <port>
+<port> is a number (0-8) Example:   dx 1
+
+?DX <call>
+<call> is a call, e.g.  dx pe1dnn-2
+
+?TLM
+Use here     "TLM <src>"
+
+?TLM <src>
+src = A(1-5) or B(1-8)  Example:    tlm B2
+
+#
+# Group 4, Local information
+#
+# 6 letter name of the net, weekday, time and QRG - in this example
+# a voice repeater which can be found with the ?voice command.
+#
+?NE|NEts|RO|ROnde|ROndes
+Koffie ZON  11:00@PI3APD
+PI4APD ZON  20:15@PI3APD
+PI4SDH DON  21:15@PI3APD
+
+# Voice repeaters
+?VO|VOice|PH|PHone|R|Relay
+PI3APD  2m  145.725 -0.6
+PI2APD 70cm 430.150 +1.6
+
+?VH|VHf
+PI3APD  2m  145.725 -0.6
+
+?UH|UHf
+PI2APD 70cm 430.150 +1.6
+
+# Local frequently used QRG's
+?LO|LOcal|QS|QSo
+145.250/.375/.475/.525
+
+#
+# Group 5, Packet access information
+#
+# Starting points for traveling packeteers
+#
+?BB|BBs|PA|PAcket
+PI8APD  2m  144.9375
+PI8APD 70cm 430.8375
+
+?D|Dxc
+PI8DXW via  PI1VRZ (lap)
+PI7DXW voice 433.925
+
+?LA|LAp
+PI1VRZ 9k6  431.000
+PI1VRZ 1k2  4k8 430.675
+
+?DI|DIgi|APRS
+PE1MEW-2 at 2.9km South
+PD0JEY-2 at 24.6km North
+
+?Q|Qrg|FREQ
+APRS 144.800 and 430.825
+
+#
+# Group 6, Event information
+#
+# Events taking place in your area
+#
+?E|Event
+None
+
+#
+# Group 7, Satelite information
+#
+# Satelite tracking
+#
+?SAT
+Usage:  SAT <sat>, LIST or NOW e.g. SAT AO40
+
+?SAT <sat>
+<sat> is a  satellite,  e.g SAT AO40
+
+?TRK
+Usage "TRK  <sat>", more than 1 sat allowed"
+
+?TRK <sat>
+<sat> is a  satellite,  e.g TRK AO40
+
+#
+# Group 8, Item information
+#
+# Important objecs in your area
+#
+# See APRS specification 30 April 2000 page 56 for message format
+#
+# Warning: maximum length is 67 bytes!
+#
+?OB|OBj|OBject|OBjects|IT|ITems
+HOsp POl I  REc F City  SHop TRain  BLN
+
+?HO|HOsp|HOspital|Z|Ziek|Ziekenhuis
+;JULIANA  *010000z5213.00N/00556.82EhJuliana   Hospital
+;LUCAS    *010000z5210.87N/00556.85EhLucas     Hospital
+Hostpital   objects sent
+
+?PO|POl|POlice|POlitie
+;POLICE   *010000z5212.90N/00557.28E!Police    Station
+Police stat object sent
+
+?I|Inf|VVV
+;VVV-APELD*010000z5212.78N\00558.05E?Tourist   Informat.
+VVV inform. object sent
+
+?RE|REc|RECr|ZOO|PAL|PALace|PALeis|TH|THeatre|THeater
+;APENHEUL *010000z5212.90N100555.18E0Zoo De    Apenheul
+;JUL-TOREN*010000z5213.63N200554.93E0Juliana   toren
+;HET-LOO  *010000z5214.03N300556.72E0Paleis    "Het Loo"
+;ORPHEUS  *010000z5213.17N400557.23E0Schowburg Orpheus
+Recreation  objects sent
+
+?SH|SHop|SHops|HA|HAm|RS
+;VAN-ESSEN*010000z5212.68N\00558.41EhVan Essen
+Elect. shop object sent
+
+?C|City|G|Gemeente
+;CITYHALL *010000z5212.93NC00557.80E0City Hall Apeldoorn
+City hall   object sent
+
+?TR|TRain|NS
+;NS-RAIL  *010000z5212.57N/00558.10E=NS Train  Station
+Train stat. object sent
+
+?F|Food
+what: FAst  Med QUality
+
+?FA|FAst|MC
+;MCDON-CEN*010000z5212.75N\00557.82ERMC Donald Center
+;MCDONA-A1*010000z5210.77N\00559.13ERMC Donald South
+Fast food   objects sent
+
+?M|Med|Medium|Valk|Mo|Motel|RES|RESt|REStaurant
+;CANTHAREL*010000z5210.36N\00554.43ERMotel de  Cantharel
+Restaurant  object sent
+
+?QU|QUality|K|Keizer|HOT|HOTel
+;KEIZERSKR*010000z5213.80N/00556.66EHHotel de  Keizerskr
+Qual. Hotel object sent
+
+?BLN
+A bulletin  is sent!
+:BLNdigi  :DIGI_NED BLN on request!
+:pe1dnn-7 :Hello Henk!
+
+#
+# This is powerfull! An external program can be run on a query and its
+# output can be returned to the caller. Here is an example "whois" server
+# which is only one of the many posibilities!
+#
+# With "%q" the original query string can be passed to the program
+# note that single quotes are replaced by "." characters so the %q
+# variable can be enclosed in quotes.
+#
+# Whois example for Linux
+?whois *
+!./Sample.lnx/whois.sh '%q'
+>./Sample.lnx/whois.out
+!/bin/rm ./Sample.lnx/whois.out
+
+# Whois example for DOS
+#?whois *
+#!.\Sample.dos\whois.bat '%q'
+#>.\Sample.dos\whois.out
+#!del .\Sample.dos\whois.out > nul
+
+# Echo example
+?echo
+Echo: '%x'
+
+# Sample of a sysop only command, command to execute starts with double !!
+?sysop
+!!echo Ok, you are Sysop > tmpxyz
+>tmpxyz
+!rm tmpxyz
+
+#
+# Group 8, Miscellaneous, testing
+#
+# Used for bound check on THD7 display
+#
+# The first "Line numbr n" lines will appear the following way:
+#
+# Screen 1, direct visible after reception:
+#  +------------+
+#  |#1<PE1DNN-2 |
+#  |Line numbr 1|
+#  |Line numbr 2|
+#  +------------+
+#
+# Screen 2, visible via MSG->LIST and scroll - right
+#
+#  +------------+
+#  |#1<PE1DNN-2 |
+#  |Line numbr 3|
+#  |Line numb   |
+#  +------------+
+#
+# Be aware that the last line is missing 3 characters!
+#
+# Objects appear the following way:
+#
+#  +------------+
+#  |OBJECT1     |
+#  |  Line num 1|
+#  |  Line num 2|
+#  +------------+
+#
+# I use the teststrings below besides the message I'm designing to
+# get it right almost the first time.
+#
+?TEST|TST
+1234567890123456789012345678901234567890123456789012345678901234567
+Line numbr 1Line numbr 2Line numbr 3Line numb  <- THD7 screen
+;Object1  *010000z5213.61N/00600.00E0Line num 1Line num 2
+;CompObj1 *010000z/4)TLP"!!x{.CCompressed object
+)CompItem1*/4)TLP"!!x{.CCompressed item
+

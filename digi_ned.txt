@@ -1,0 +1,4686 @@
+*
+* Digipeater from Dutch soil!                         PE1DNN 04-Dec-2009
+*
+* Version: DNxxxxxx.ZIP (DN<type><version>.ZIP)
+*
+*          DNEXExxx.ZIP       - DOS exe file plus additional files
+*          DNSRCxxx.ZIP       - DOS  source  wrapper,  contains   source
+*                               .TGZ file,  wrapped  because  brain-dead
+*                               MSDOS does not understand long filenames
+*          digi_ned-x.x.x.tgz - Source  file  for  LINUX  (contained  in
+*                               DNSRCxxx.ZIP)
+*
+* Latest version available via portal: http://www.qsl.net/digi_ned
+*
+
+PREAMBLE
+--------
+  This is DIGI_NED, a rule driven digipeater using an INI file and
+  containing special functions for use with APRS. APRS is a registered
+  trademark of Bob Bruninga, WB4APR. His homepage can be found at:
+  "http://web.usna.navy.mil/~bruninga/aprs.html". DIGI_NED also
+  digipeats Opentrac packets. Opentrac is more structured protocol
+  inspired by APRS, more information about the protocol and the
+  project can be found at "http://www.opentrac.org/".
+
+  Why a new digipeater? The functions of this digipeater are comparable
+  to other rule based digipeaters. Still there were good reasons to
+  build a new one.
+
+  1) Existing digipeaters do not exactly do what we wanted it to do
+  2) Some digipeaters stop running on illegal frames, most notably
+     frames with more than 8 digipeaters in it
+  3) We want to have source code to be able to add hardware options
+     later, like connecting a Radio Direction Finder
+  4) The digipeater should run on a 286 with something simpler than BPQ
+  5) Suitable for rock-table 24/7 use
+  6) Ability to add functions as we want to
+
+  The source of this digipeater has been made available under the terms
+  of the General Public License.
+
+  DIGI_NED, as the digipeater is called (Digipeater from the
+  Netherlands) has the following properties:
+
+  * Intelligent digipeater, based on configuration rules from an .ini
+    file (resembles other rule-based digipeaters but has the
+    possibility to implement WIDEn-N correctly without ending up with
+    extreme long paths. The rule "swap" enables correct handling of
+    WIDEn-N).
+  * Intelligent digipeating also works for destination-SSID based
+    digipeating using the "digito:" and "digissid:" rules.
+  * Digipeater-call is only specified at one spot (in the sample near
+    the end) in the .ini file, this makes it easier to replicate the
+    .ini file.
+  * Digipeats frames with PID AX.25, IP, ARP and NETROM. AX.25
+    and TCP/IP radio connections can be established via the digipeater.
+  * Call substitution (with an option not to substitute) and
+    counteractions against looping of packets (checks for its own
+    digipeater-call in the digipeater "via" list and remembers CRCs of
+    earlier heard packets)
+  * Responds with beacons to ?APRS? queries
+  * Responds with WX beacons to ?WX? queries
+  * Supports automatic responses to messages, such as ?ping?
+  * Can act as a "tiny-web-server" with configurable messages and
+    pinpointing of interesting locations in the area
+  * Support for covering "black-spots"
+  * Preemptive digipeating, digipeat out-of-order/skip unused digis
+  * Usable also for LINUX
+  * Generates DX messages and keeps DX lists for directly heard stations
+  * Generates telemetry messages, input via a LPT port
+  * Remote control output via LPT port
+  * Satellite tracking activated by queries, transmits the requested
+    satellites by means of so called Objects, displays when the satellite
+    raises above the horizon or when in view shows the bearing and azymuth.
+  * Ability to send data recieved over a serial line from a GPS,
+    weatherstation or other serial device. The data is send without
+    modification.
+
+  DIGI_NED can be used with all modems that can also be used by TFPCX
+  (oh wonder, how is that possible...) so including the BPQ protocol
+  over Ethernet, KISS, BayCom, YAM, SCC (PA0HZP, PE1PET, USCC) etc. In
+  LINUX, DIGI_NED users the kernel interface; anything connected to
+  this should work.
+
+  A general philosophy for DIGI_NED is the ability for a user to make
+  his own configuration. An attempt is made to make the default
+  configuration as useful and correct as possible, but the end-user
+  determines in the end how the digipeater will behave and look like.
+
+  This is the first attempt to generate documentation. I just collected
+  stuff and parts I wrote. From that I assembled documentation in
+  Dutch. Due to more international interest I will continue this
+  documentation in English. I dropped the Dutch documentation.
+  Volunteers are welcomed to generate docs in other languages. French
+  documentation is at the time of writing available at the site of MAPG,
+  the Moselle APRS Packet Group in France. The addres of this site is:
+  http://mapg.ifrance.com/mapg/index.htm This will be the only document
+  I will put in my distributions to avoid to much rework for each
+  revision. This document will grow over-time as I add new bits and
+  pieces.
+
+  I would like reports and suggestions for enhancements. This DIGI is
+  under our own control and can be adapted to our wishes. I want
+  however to stick closely to the APRS specification! If you encounter
+  any violation of this in the program and default .ini file please
+  report it! Note that this reporting is important, if my default .ini
+  file is wrong it will spread all-over the world!
+
+  Kind regards,
+
+  Henk.
+
+AX25_MAC Setup
+--------------
+  DIGI_NED makes use of a TSR program that drives the modems etc. This
+  program is AX25_MAC. MAC is an abbreviation for Medium Access Control
+  which is a common name in protocol software for the part driving the
+  hardware. You always need to run this TSR when using the DOS version
+  of DIGI_NED, without this TSR present DIGI_NED will refuse to start.
+
+  This AX25_MAC is a MAC layer for AX.25. What it does is take raw
+  frames of data, add a CRC and transmit as a HDLC packet to the
+  hardware. Read frames are, when the CRC is correct, passed on in raw
+  form to the program that uses the MAC layer. There is no intelligence
+  in the MAC layer, it will transmit everything that is fed to it.
+
+  AX25_MAC must be loaded into memory using parameters as also used for
+  the TFPCX program. In 'run.bat' an example is given for the BayCom
+  style 1k2 modem I use for testing.
+
+  In short the parameters:
+
+    Usage: AX25_MAC [ -N ] [ <load options> | -U ]
+
+    <general options>              <legend>
+      -N no messages                 [] optional
+      -U unload                      |  alternative
+                   x  hex digit
+                   n  dec digit
+    <load options>
+      -P<port>[:xxx:nn:nnnn]  packet port [addr:IRQ:<clock>]
+      -Bnnnn[:nnnn ...]       baud rate (1 number/port)
+
+      -F[file]  read init file
+      -D        debug mode
+      -C[xx]    show DCD [color]
+      -Ixx      AX25_MAC interrupt
+      -L        interLock - one TX at a time (only for half-duplex ports)
+      -BU[nnnn] number of buffers
+    <port>  COMn | LPTn | PARn | YAMn | BPQnn | KISSn | DSCC | OSCC | USCC
+      (n = 1-4, for BPQ n=  60-80)
+    <clock> 0 = disable    2 = hardclock    4 = PA0HZP port  (1 digit/
+        1 = softclock  3 = DF9IC modem  5 = PA0HZP timer  channel)
+
+  This overview is also presented when invoking AX25_MAC the following
+  way:
+
+  AX25_MAC -?
+
+  Parameters for configuring and adjustment to the used hardware are
+  the same as for TFPCX. The documentation (English) for AX25_MAC is
+  included in the package, in this document you can read more about
+  about it. The document will also point out some of the restrictions
+  for correct working. For example you cannot use BayCom modems in a
+  DOS box under windows because in that case AX25_MAC needs strict
+  timing and access to the PC's timer-chip.
+
+  Adjustment of access parameters of the ports (TXDelay and the like) is
+  done by means of AX25_MAC.INI. At the start of AX25_MAC the -F option
+  shall be specified, otherwise the file is not read and default values
+  will be used.
+
+  AX25_MAC.INI contains parameters that also exist in TFPCX, only the
+  parameters that are of interest for a MAC layer are present however.
+  Many parameters that exist in TFPCX are therefor vanished. For more
+  detailed information see AX25_MAC.TXT.
+
+  Here is an example how to set AX25_MAC up with a KISS TNC. I got
+  several mails about this and I wrote this short instruction on how to
+  do it.
+
+  This is what you have to do:
+
+  1) Kick the TNC into KISS mode, how this is done depends on the
+     TNC type.
+  2) If applicable change AX25_MAC.INI to set TX-Delay to match your
+     TRX.
+  3) Load AX25_MAC the following way:
+
+     AX25_MAC -PKISS1 -B9600 -L -F -C17 -BU50
+
+     (you may want to change 'run.bat' to have a startup batch-file)
+
+  At this point you have a driver running. You can have more ports than
+  one, the parameter '-C17' is responsible for the indicator you see in
+  the top-right corner. It should follow the reception of data. If you
+  don't like it just leave the parameter '-C17' out. The parameter
+  '-B9600' sets the speed to 9600 baud, this is also the default for
+  kiss so you could leave it out. The '-L' parameter prevents
+  simultaneous transmission if you have more than one port, you can
+  leave that out as well since with one port it does nothing.
+
+  The '-F' causes the AX25_MAC.INI to be read to program the TX-delay
+  etc. If you leave that out some defaults will be used. The -BU50
+  specifies that up to 50 frames can be buffered in the TSR. A very
+  simple startup would be:
+
+      AX25_MAC -PKISS1
+
+  I know it doesn't sound simple at first, but using this AX25_MAC
+  driver really covers a lot of hardware and makes DIGI_NED itself
+  hardware independent.
+
+  Now you have the TSR running and can proceed with the setup of
+  DIGI_NED itself which will be described in a minute.
+
+  AX25_MAC can be unloaded from memory by starting AX25_MAC once more
+  but this time only with the '-u' flag.
+
+DIGI_NED Setup
+--------------
+  When AX25_MAC has been loaded then DIGI_NED can be started. At the
+  start DIGI_NED reads the DIGI_NED.INI file. Another .INI can be
+  loaded by supplying its name at startup.
+
+  C:\APRS\> DIGI_NED MYDIGI.INI
+
+  The line above loads MYDIGI.INI instead of DIGI_NED.INI. When no
+  alternative 'DIGI_NED.INI' file is supplied the DIGI_NED will read
+  the DIGI_NED.INI which is present in the same directory as the .EXE
+  file.
+
+  You can supply the '-v' option for verbose output, or '-h' for help.
+  Alternatively you can specify '-a' if you want to monitor the
+  activity of message queries and telemetry message generation or '-d'
+  to monitor DX message generation.
+
+  Before starting DIGI_NED you have to exchange my call in the
+  DIGI_NED.INI with the call you want to use for the digipeater. The
+  call is only present in one place; at the end of the DIGI_NED.INI you
+  will find:
+
+  digi_call: PE1DNN-2
+
+  All DIGI_CALL fields that are present in DIGI_NED.INI will be
+  replaced at runtime by the call supplied with the digi_call setting,
+  in my case this is PE1DNN-2.
+
+  As owner of the digipeater you have to supply your own call, this way
+  the ?id query will return who is responsible for the digipeater. On
+  top of that the owner will be able to execute the ?exit command when
+  he or she wants to. You can assign more owners. The first one you
+  assign will be used for the ?id query, but the others will be able
+  the execute the ?exit command too. These other calls can be your own
+  with a different SSID or a call of a co-maintainer.
+
+  The text in digibcon.ini will be transmitted as beacon. Currently it
+  contains an APRS message with the position of the DIGI. The syntax of
+  this message and how to set it up can be found in the APRS
+  specification. Do not forget to change the location, I have seen some
+  strange stations at my QTH lately :-). Be aware that some characters
+  are not allowed according to the specification!
+
+  The text in digi_id.ini will be transmitted as station
+  identification. It is just a plain text message for people watching
+  with their AX.25 monitor and wonder which station is transmitting all
+  the data they see. Don't forget to change the file so it contains
+  your callsign.
+
+  In DIGI_NED.INI you will find a "send:" or "beacon:" command which
+  specifies the interval for these beacon transmissions, from which
+  file the beacon texts shall be read and on which ports it should be
+  transmitted. Also the destination and digipeater calls are specified
+  there. When the file for the beacon is specified without any path
+  then DIGI_NED looks for it in the same directory as where the program
+  is located.
+
+  Difference between "send:" and "beacon:" is that only beacons
+  specified with "beacon:" will be send upon reception of an ?APRS?
+  broadcast from a user.
+
+  For DX message generation you need to specify the position of the
+  digipeater in "digi_pos:".
+
+DIGI_NED Basic functionality
+----------------------------
+  Now what does the digipeater exactly do and how?
+
+  In APRS the digipeater-path is constantly manipulated. An APRS
+  station uses generic calls in the "via"" list, such as 'RELAY',
+  'TRACE', 'WIDE' etc., which will be picked up by the digipeater,
+  replaced by the digipeaters own callsign and retransmitted. The
+  clue is that an APRS station doesn't need to know which name a nearby
+  digipeater has. The station just sends its frame with 'WIDE' in the
+  via path and any digipeater in the area that responds to 'WIDE' will
+  pick it up; there can be more digipeaters who do this at the same
+  time.
+
+  The WIDEn-N format needs some special handling which is done by so
+  called "intelligent" digipeaters such as DIGI_NED. When a station
+  starts with a digipeater like WIDE5-5 in the via path, the first
+  "intelligent" digipeater that takes this frame will be change the
+  call to WIDE5-4 as soon as it passes it. On the second "intelligent"
+  digipeater it will become WIDE5-3 and so on until after the 5th
+  digipeater the call has become WIDE5-0 (in other words WIDE5). Then
+  the "digipeated" bit will be set (visible in most monitors by a '*'
+  indication) and the next digipeater call in the via list will become
+  due. TRACEn-N works similar. There is a lot to talk about this but
+  that's out of context here. The default DIGI_NED.INI file executed
+  the intelligent digipeating rules as we think they are meant to be.
+  The behavior has been verified with the APRS SIG (Special Interest
+  Group) on http://www.tapr.org.
+
+  Lets just look how this works using one rule from the DIGI_NED.INI
+  file:
+
+  digipeat: 1 relay 2
+
+  This means: digipeat packets that arrive via port one and where the
+  name of the digipeater that should be handled is 'RELAY' and send
+  those back out via port two.
+
+  For example an incoming frame via port 1:
+
+  from 1: PE1DNN > APRS via PE1MEW-2*, RELAY, WIDE
+
+  This frame was already digipeated by PE1MEW-2, the next digipeater in
+  the via list is RELAY and that matches with the call in the digipeat:
+  rule; this one should go to port two. In the digipeat rule nothing is
+  specified after the '2', this is 'normal' digipeating. In that case
+  the call is substituted by the digipeater call, e.g. PE1DNN-2. The
+  transmitted frame to port 2 becomes:
+
+  to 2: PE1DNN > APRS via PE1MEW-2*, PE1DNN-2*, WIDE
+
+  That will be transmitted. Port specification 'all' means 'from all
+  ports' and 'to all ports'
+
+  So:
+
+  digipeat: all relay all
+
+  When receiving a frame from port 1:
+
+  from 1: PE1DNN > APRS via PE1MEW-2*, RELAY, WIDE
+
+  this will be transmitted using this rule:
+
+  to 1: PE1DNN > APRS via PE1MEW-2*, PE1DNN-2*, WIDE
+  to 2: PE1DNN > APRS via PE1MEW-2*, PE1DNN-2*, WIDE
+
+  So transmission will be to both output ports when there are two (the
+  number of ports depends on how may hardware ports are setup in
+  AX25_MAC).
+
+  You can do all kind of manipulation on the digipeater path, such as
+  replacement with a completely new path, addition of digipeater calls
+  to the via list etc. You can even handle digipeaters out of order or
+  create a simple 'cluster'. What you can do is explained in the
+  comment in the DIGI_NED.INI file. Be warned, it is a lot! Your
+  imagination has to do the rest. The verbose output and logging are
+  helpful to analyze if your experiments.
+
+  If you want to know more, read also the FAQ chapter near the end of
+  this document. Of course I would not mind if someone would write a
+  nice textbook about how to set this up. But as a last resort there is
+  the source, which I try to commented and clean, for the ultimate
+  detail on every bit of DIGI_NED...
+
+SYNTAX
+------
+  Here is an overview of the syntax of all the commands:
+
+  Send:
+  -----
+
+    send: [@]<time> <to-ports> [<dest>],[<digis>]
+    <filename>
+
+    time         = interval time in minutes. Add '@' for absolute time
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    dest         = destination call, for example DIGI_DEST, ID or BEACON
+    digis        = <digi>[,digi]... via digipeater calls for beacon
+    filename     = name of the file containing the beacon data
+    digi         = digipeater call, for example WIDE or TRACE6-6.
+    port         = 1..(number of last active port)
+
+    example:
+
+    send: 20 all DIGI_DEST,WIDE,TRACE6-6
+    digibcon.ini
+
+    Note: send information will be not be send upon reception of an
+          ?APRS? broadcast
+
+  Beacon:
+  -------
+
+    beacon: [@]<time> <to-ports> [<dest>],[<digis>]
+    <filename>
+
+    time         = interval time in minutes. Add '@' for absolute time
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    dest         = destination call, for example DIGI_DEST, ID or BEACON
+    digis        = <digi>[,digi]... via digipeater calls for beacon
+    filename     = name of the file containing the beacon data
+    digi         = digipeater call, for example WIDE or TRACE6-6.
+    port         = 1..(number of last active port)
+
+    example:
+
+    beacon: 20 all DIGI_DEST,WIDE,TRACE6-6
+    digibcon.ini
+
+    Note: beacons will be send upon reception of an ?APRS? broadcast
+
+  Automessage:
+  ------------
+
+    automessage: [@]<time> <to-ports>
+    <query>
+
+    time         = interval time in minutes. Add '@' for absolute time
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    query        = query to be send internally to the DIGI
+    port         = 1..(number of last active port)
+
+    example:
+
+    automessage: 100 all
+    ?trk no44
+
+  Serial:
+  -------
+
+    serial: [@]<time> <to-ports> <com> <speed> [<dest>],[<digis>]
+    [<sentence>]...
+
+    time         = interval time in minutes, add '@' for absolute time
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    com          = COM port, allowed COM1..9, for DOS only up to COM4
+    speed        = Baudrate, accepted are 1200, 2400, 4800 and 9600 baud
+    dest         = destination call, for example DIGI_DEST, ID or BEACON
+    digis        = <digi>[,digi]... via digipeater calls for beacon
+    sentence     = name of the sentence to pick up, if empty all data is
+                   picked up.
+    digi         = digipeater call, for example WIDE or TRACE6-6.
+    port         = 1..(number of last active port)
+
+    Note: for DOS only one "serial:" rule is accepted.
+
+    example:
+
+    serial: 10 all com3 4800 GPSODN,WIDE,WIDE3-3
+    $GPRMC $GPGGA
+
+  Wx:
+  ---
+
+    wx: [@]<time> <to-ports> [<dest>],[<digis>]
+    [<wx-string>]...
+
+    time         = interval time in minutes. Add '@' for absolute time
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    dest         = destination call, for example DIGI_DEST, WX or BEACON
+    digis        = <digi>[,digi]... via digipeater calls for beacon
+    wx-string    = format specification, ascii string with format
+                   commands to insert wx variables defined with
+                   wx_var: Formatting for variable "v" with value 123:
+                   "%v"   -> "123"  (takes as much space as needed)
+                   "%4v"  -> " 123" (always 4 characters)
+                   "%-4v" -> "123 " (always 4 characters, left aligned)
+                   "%04v" -> "0123" (always 4 characters, zero padding)
+                   "%02v" -> "23"   (always 2 characters, truncates)
+                   "the value of v=%v" -> "the value of v=123"
+                   use "\%" to get a "%" in the output
+                   use "\\" to get a "\" in the output
+    digi         = digipeater call, for example WIDE or TRACE6-6.
+    port         = 1..(number of last active port)
+
+    example:
+
+    wx: 5 all APRS,WIDE,WIDE
+    _%08Dc%03cs%03sg%03gt%03tr%03rp%03pP%03Ph%02hb%05b#%03#xDned
+
+    This format could generate for example:
+    _09022027c210s008g009t063r000p004P004h80h10090#004xDned
+
+  Telemetry:
+  ----------
+
+    telemetry: [@]<time> <sources> <to-ports> [<dest>],[<digis>]
+
+    time         = interval time in minutes. Add '@' for absolute time
+    sources      = <analog>,[<analog>,<analog>,<analog>,<analog>,<bin>]
+    analog       = <source>[/<address>]
+    bin          = <source>[/<address>]
+    source       = lpt<n>|lpt<n>_8|off
+    address      = 0-7
+    n            = 1-3
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    dest         = destination call, for example DIGI_DEST
+    digis        = <digi>[,digi]... via digipeater calls for beacon
+    digi         = digipeater call, for example WIDE or TRACE6-6.
+    port         = 1..(number of last active port)
+
+    example:
+
+    telemetry: 15 all lpt2/1,off,off,off,off,lpt2_8 DIGI_DEST
+
+  Tele_Info:
+  ----------
+
+    tele_info: <beacon-file>
+
+    beacon-file  = file containing telemetry information
+                   (PARM.,UNIT.,EQNS.,BITS. messages addressed to the
+                   digi itself. See APRS Specification on
+                   http://www.tapr.org for details)
+
+    example:
+
+    tele_info: digi_tlm.ini
+
+  Wx_var: (value variable)
+  ------------------------
+
+    wx_var: <var>,<kind>[time],<source>[/<address>],<a>,<b>,<c>
+
+    var          = variable symbol, single character a-z,A-Z and
+                   symbols like #,$,@ etc.
+    kind         = kind of variable. for a value variable this can
+                   be "val", "max", "min", "sum" or "avg".
+    time         = for variable kinds "max", "min", "sum" and "avg"
+                   the timespan over which data is collected in minutes
+    source       = lpt<n>|lpt<n>_8
+    address      = 0-7
+    a            = floating point constant, parameter "a" of formula
+                   value=a(x*x)+b(x)+c
+    b            = floating point constant, parameter "b" of formula
+                   value=a(x*x)+b(x)+c
+    c            = floating point constant, parameter "c" of formula
+                   value=a(x*x)+b(x)+c
+
+    example:
+
+    wx_var: v,min60,lpt2/1,0,1.0,0
+
+  Wx_var: (time variable)
+  -----------------------
+
+    wx_var: <var>,<kind>,<zone>
+
+    var          = variable symbol, single character a-z,A-Z and
+                   symbols like #,$,@ etc.
+    kind         = kind of variable. for a time variable this can
+                   be:
+                      dhm     -> day, hour, minute value
+                      hms     -> hour, minute, second value
+                      ymd     -> year, month, day value
+                      ydm     -> year, day, month value
+                      dmy     -> day, month, year value
+                      mdy     -> month, day, year value
+                      mdh     -> month, day, hour value
+                      mdhm    -> month, day, hour, minute value
+    zone         = timezone, either "zulu" or "local"
+
+    example:
+
+    wx_var: t,hms,local
+
+  Command:
+  --------
+
+    command: <command-line>
+
+    command-line = line containing a command for DIGI_NED. The command
+                   is send to DIGI_NEDs message system. Responses appear
+                   on screen. Used to inititalize remote-controlled
+                   output ports.
+
+    example:
+
+    command: !out 2 01101011
+
+  Digipeat:
+  ---------
+
+    digipeat: <from-ports> <due-digis> <to-ports> [operation[n] [<digis>]]
+
+    from-ports   = <port>[,<port>]..., "all" for all ports, "allbut" for
+                   all ports except the reception-port
+    due-digis    = <due>[,<due>]... list of "due" digipeaters to pick
+                   from
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    operation    = add | replace | new | swap | hijack | erase | keep | shift
+    n            = number of digipeater calls to mark as "used",
+                   default 1
+    digis        = <digi>[,digi]... list of digipeater calls
+    port         = 1..(number of last active port)
+    due          = digipeater call which is next due, for example WIDE
+                   or TRACE, supports wildcards ?, #, @ and *.
+    digi         = digipeater call parameter for operation, for example
+                   WIDE or TRACE6-6.
+
+    example:
+
+    digipeat: all wide7-7 all swap0 wide7-6
+
+  DigiEnd:
+  --------
+
+    digiend: <from-ports> <end-digis> <to-ports> [operation[n] [<digis>]]
+
+    from-ports   = <port>[,<port>]..., "all" for all ports, "allbut" for
+                   all ports except the reception-port
+    end-digis    = <end>[,<end>]... list of "last" used digipeaters to
+                   react on
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    operation    = add | replace | new | swap | hijack | erase | keep | shift
+    n            = number of digipeater calls to mark as "used",
+                   default 1
+    digis        = <digi>[,digi]... list of digipeater calls
+    port         = 1..(number of last active port)
+    end          = digipeater call which was last used, for example WIDE
+                   or TRACE, supports wildcards ?, #, @ and *.
+    digi         = digipeater call parameter for operation, for example
+                   WIDE or TRACE6-6.
+
+    example:
+
+    digiend: all wide*,trace* 2 add LOCAL
+
+  DigiTo:
+  -------
+
+    digito: <from-ports> <destinations> <to-ports> <ssid>
+                                            [operation[n] [<digis>]]
+
+    from-ports   = <port>[,<port>]..., "all" for all ports, "allbut" for
+                   all ports except the reception-port
+    destinations = <dest>[,<dest>]... list of destination calls to pick
+                   from
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    operation    = add | replace | new | swap | hijack | erase | keep | shift
+    n            = number of digipeater calls to mark as "used", default 1
+    digis        = <digi>[,digi]... list of digipeater calls
+    port         = 1..(number of last active port)
+    dest         = destination call for example APRS or BEACON, supports
+                   wildcards ?, #, @ and *.
+    digi         = digipeater call parameter for operation, for example
+                   WIDE or TRACE6-6.
+
+    example:
+
+    digito: 1 *-12 all 0 add WIDE
+
+  DigiSsid:
+  ---------
+
+    digissid: <from-ports> <destinations> <to-ports> <ssid>
+                                            [operation[n] [<digis>]]
+
+    from-ports   = <port>[,<port>]..., "all" for all ports, "allbut" for
+                   all ports except the reception-port
+    destinations = <dest>[,<dest>]... list of destination calls to pick
+                   from
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    operation    = add | replace | new | swap | hijack | erase | keep | shift
+    n            = number of digipeater calls to mark as "used",
+                   default 1
+    digis        = <digi>[,digi]... list of digipeater calls
+    port         = 1..(number of last active port)
+    dest         = destination call for example APRS or BEACON, supports
+                   wildcards ?, #, @ and *.
+    digi         = digipeater call parameter for operation, for example
+                   WIDE or TRACE6-6.
+
+    example:
+
+    digissid: 1 *-12 all 0 add WIDE
+
+  Digifirst:
+  ---------
+
+    digifirst: <from-ports> <due-digis> <to-ports> [operation[n] [<digis>]]
+
+    from-ports   = <port>[,<port>]..., "all" for all ports, "allbut" for
+                   all ports except the reception-port
+    due-digis    = <due>[,<due>]... list of "due" digipeaters to pick
+                   from
+                   digifirst: only acts if the digi due is the first digi
+                   in the via list, complements diginext:
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    operation    = add | replace | new | swap | hijack | erase | keep | shift
+    n            = number of digipeater calls to mark as "used",
+                   default 1
+    digis        = <digi>[,digi]... list of digipeater calls
+    port         = 1..(number of last active port)
+    due          = digipeater call which is next due, for example WIDE
+                   or TRACE, supports wildcards ?, #, @ and *.
+    digi         = digipeater call parameter for operation, for example
+                   WIDE or TRACE6-6.
+
+    example:
+
+    digifirst: all wide7-7 all swap DIGI_CALL,wide7-6
+
+  Diginext:
+  ---------
+
+    diginext: <from-ports> <due-digis> <to-ports> [operation[n] [<digis>]]
+
+    from-ports   = <port>[,<port>]..., "all" for all ports, "allbut" for
+                   all ports except the reception-port
+    due-digis    = <due>[,<due>]... list of "due" digipeaters to pick
+                   from
+                   diginext: only acts if the digi due is not the first
+                   digi in the via list, complements digifirst:
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    operation    = add | replace | new | swap | hijack | erase | keep | shift
+    n            = number of digipeater calls to mark as "used",
+                   default 1
+    digis        = <digi>[,digi]... list of digipeater calls
+    port         = 1..(number of last active port)
+    due          = digipeater call which is next due, for example WIDE
+                   or TRACE, supports wildcards ?, #, @ and *.
+    digi         = digipeater call parameter for operation, for example
+                   WIDE or TRACE6-6.
+
+    example:
+
+    diginext: all wide7-7 all swap0 wide7-6
+
+  Ssid_Ignore_Prefix:
+  -------------------
+
+    ssid_ignore_prefix: <char>[<char>]...
+
+    char         = character to compare with first character of received
+                   data to determine if the packet is valid for digipeating
+                   on SSID.
+
+    example:
+
+    ssid_ignore_prefix: ~
+
+  Preempt:
+  --------
+
+    preempt: <from-ports> <on-digis> [<replace>]
+
+    from-ports   = <port>[,<port>]..., "all" for all ports
+    on-digis     = <find>[,<find>]... list of digis to search for and
+                   act on when found, supports wildcards ?, #, @ and *.
+    port         = 1..(number of last active port)
+    find         = digipeater call to find in the "via" list. When
+                   found, preemption takes place.
+    replace      = replacement digipeater call, will replace the found
+                   digipeater call. If not specified the digipeater call
+                   is left untouched
+
+    example:
+
+    preempt: all PE1DNN-2 WIDE
+
+  Preempt_keep:
+  -------------
+
+    preempt_keep: <digis>
+
+    digis        = <keep>[,<keep>]... list of digipeaters to keep when
+                   preemption takes place on the frame, supports
+                   wildcards ?, #, @ and *.
+    keep         = digipeater call to retain in the "via" list when the
+                   frame is preempted
+
+    example:
+
+    preempt_keep: PA*,PE*,PD*,PI*
+
+  Preempt_never_keep:
+  -------------------
+
+    preempt_never_keep: <digis>
+
+    digis        = <keep>[,<keep>]... list of digipeaters which should
+                   never be kept when preemption takes place on the
+                   frame, supports wildcards ?, #, @ and *.
+    keep         = digipeater call to retain in the "via" list when the
+                   frame is preempted
+
+    example:
+
+    preempt_never_keep: RELAY*,WIDE*,TRACE*,GATE*
+
+  Local:
+  ------
+
+    local: <local-ports>
+
+    local-ports  = <port>[,<port>]... or "all" for all ports
+
+    example:
+
+    local: 2
+
+  Size_Heard_List:
+  ----------------
+
+    size_heard_list: <number>
+
+    number       = maximum number of direct calls that will be kept
+                   in "mheard" lists (cumulative for all ports)
+
+    example:
+
+    size_heard_list: 150
+
+  Size_Heard_Show:
+  ----------------
+
+    size_heard_show: <number>
+
+    number       = maximum number of direct calls that will be shown
+                   in an ?mheard (or ?mh) query
+
+    example:
+
+    size_heard_show: 40
+
+  Digi_Pos:
+  ---------
+
+    digi_pos: <lattitude> <longitude>
+
+    lattitude    = latitude of this digipeater in APRS-style format
+    longitude    = longitude of this digipeater in APRS-style format
+
+    example:
+
+    digi_pos: 5213.61N 00600.00E
+
+  Dx_Times:
+  ---------
+
+    dx_times: <time>[,<time>...]
+
+    time         = time in hours for which the best DX shall be shown.
+                   the distance and bearing information is stored in the
+                   mheard list (if the time is bigger than the oldest
+                   entry in the mheard list then older stations cannot
+                   be checked). Use "all" for the best DX of all entries
+                   in the mheard list.
+
+    example:
+
+    dx_times: all,24,1
+
+  Dx_Metric:
+  ----------
+
+    dx_metric: <metric>
+
+    metric       = metric to use for distances. "km" for kilometers,
+                   "mi" for statue miles or "nm" for nautical miles.
+
+    example:
+
+    dx_metric: km
+
+  Dx_Level:
+  ---------
+
+    dx_level: <ports> <threshold> <age>
+
+    ports        = <port>[,<port>]..., "all" for all ports
+    threshold    = <min>[-<max>]
+    age          = number in hours. If a station which is received
+                   directly is the "best DX" in the last <age> hours
+                   then a DX message is send out (if the distance is
+                   above the threshold).
+    port         = 1..(number of last active port)
+    min          = distance in km, mi or nm (see dx_metric:), distances
+                   below this threshold are never DX for this port or
+                   these ports (used to filter out near stations).
+    max          = distance in km, mi or nm (see dx_metric:), distances
+                   above this threshold are never DX for this port or
+                   these ports (used to filter out bogus locations).
+
+    example:
+
+    dx_level: all 50-2000 1
+
+  Dx_Path:
+  --------
+
+    dx_path: <to-ports> [<dest>],[<digis>]
+
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    dest         = destination call, for example DX
+    digis        = <digi>[,digi]... via digipeater calls for DX message
+    digi         = digipeater call, for example WIDE or TRACE6-6.
+    port         = 1..(number of last active port)
+
+    example:
+
+    dx_path: all DX,TRACE,WIDE
+
+  Dx_Portname:
+  ------------
+
+    dx_portname: <port> <portname>
+
+    port         = 1..(number of last active port)
+    portname     = name for the port, may include spaces, runs until end
+                   of line.
+
+    example:
+
+    dx_portname: 1 2 mtr
+
+  Keep_Time:
+  ----------
+
+    keep_time: <number>
+
+    number       = number of seconds to remember already digipeated data
+
+    example:
+
+    keep_time: 300
+
+  Short_Keep_Time:
+  ----------------
+
+    short_keep_time: <number>
+
+    number       = number of seconds to remember already digipeated data
+                   which matched with "data_prefix:", see below
+
+    example:
+
+    short_keep_time: 10
+
+  Data_Prefix:
+  ------------
+
+    data_prefix: <char>[<char>]...
+
+    char         = character to compare with first character of received
+                   data to determine how long to remember this data if
+                   it is digipeated.
+
+    example:
+
+    data_prefix: :?
+
+  Message_File:
+  -------------
+
+    message_file: <filename>
+
+    filename     = name of the file to read message queries and
+                   answers from
+
+    example:
+
+    message_file: digi_ned.mes
+
+  Message_keep_time:
+  ------------------
+
+    message_keep_time: <number>
+
+    number       = number of seconds to remember messages send to the
+                   digipeater (queries) to avoid double answers to
+                   one an the same query.
+
+    example:
+
+    message_keep_time: 900
+
+  Message_Path:
+  -------------
+
+    message_path: <to-ports> <digis>
+
+    to-ports     = <port>[,<port>]... or "all" for all ports
+    digis        = <digi>[,digi]... via digipeater calls for message responses
+    digi         = digipeater call, for example WIDE or TRACE6-6.
+    port         = 1..(number of last active port)
+
+    example:
+
+    message_path: all TRACE,WIDE
+
+  Max_Msg_Hops:
+  -------------
+
+    max_msg_hops: <hopcount>
+
+    hopcount     = 1..(number of hops)
+
+    example:
+
+    max_msg_hops: 2
+
+  Kenwood_Mode:
+  -------------
+
+    kenwood_mode: <mode>
+
+    mode         = 0..2
+                   0 = off (when off also other AX.25, IP, NETROM, ARP and
+                       Opentrac packets can be digipeated, otherwise only
+                       UI frames with PID=F0 or PID=77 (see opentrac_enable:)
+                   1 = truncate packets which are too long for the
+                       TH-D7E to digest (stops APRS function if too long)
+                       long opentrac packets will never be truncated
+                   2 = ignore packets which are too long for the TH-D7E
+                       to digest (stops APRS function if too long)
+                       long opentrac packets will never be ignored
+
+    example:
+
+    kenwood_mode: 1
+
+  Opentrac_Enable:
+  ----------------
+
+    opentrac_enable: <mode>
+
+    mode         = 0..1
+                   0 = off, Opentrac UI frames with PID=77 will not be
+                       digipeated
+                   1 = on, Opentrac UI frames with PID=77 will be
+                       digipeated
+
+    example:
+
+    opentrac_enable: 1
+
+  Digi_Altitude:
+  --------------
+
+    digi_altitude: <altitude>
+
+    altitude     = altitude of the digi in meters (1 meter is approx.
+                   3.28 feet, not critical).
+
+    example:
+
+    digi_altitude: 10
+
+  Digi_Use_Local:
+  ---------------
+
+    digi_use_local: <time_mode>
+
+    time_mode    = 0|1
+                   0 = use UTC
+                   1 = use local time
+                   this is used for the display of AOS time in
+                   satellite objects.
+
+    example:
+
+    digi_use_local: 1
+
+  Digi_Utc_Offset:
+  ----------------
+
+    digi_utc_offset: <time_diff>
+
+    time_diff    = [+|-]<number>
+                   UTC offset for the digi (EST = -5). Make sure to
+                   correct this for daylight savings. If the environment
+                   variable TZ is set on your system then this value is
+                   overruled.
+
+    example:
+
+    digi_utc_offset: +2
+
+  Sat_In_Range_Interval:
+  ----------------------
+
+    sat_in_range_interval: <interval>
+
+    interval     = <number>
+                   time (in minutes) between transmission of satellite
+                   objects when satellite is in range.
+
+    example:
+
+    sat_in_range_interval: 1
+
+  Sat_Out_Of_Range_Interval:
+  --------------------------
+
+    sat_out_of_range_interval: <interval>
+
+    interval     = <number>
+                   time (in minutes) between transmission of satellite
+                   objects when satellite is out of range.
+
+    example:
+
+    sat_out_of_range_interval: 10
+
+  Track_Duration:
+  ---------------
+
+    track_duration: <interval>
+
+    interval     = <number>
+                   duration time (in minutes) of tracking. during
+                   tracking satellites are transmitted with the
+                   interval specified with sat_in_range_interval:
+                   and sat_out_of_range_interval: After expiration
+                   of the track_duration: time transmission of
+                   objects stops. Tracking is started on request of
+                   a user by means of a "?trk" query.
+
+    example:
+
+    track_duration: 105
+
+  Satellite_file:
+  ---------------
+
+    satellite_file: <filename>
+
+    filename     = name of the file to read the satellite kepler
+                   data from for the satellite query functions.
+
+    example:
+
+    satellite_file: digi_ned.sat
+
+  Update_tle_file:
+  ----------------
+
+    update_tle_file: <filename>
+
+    filename     = name of the file to read updates for the
+                   satellite kepler data from. This data is used
+                   to update the file specified with the rule
+                   satellite_file:
+
+    example:
+
+    update_tle_file: digi_ned.tle
+
+  Sat_obj_format:
+  ---------------
+
+    sat_obj_format: <format>
+
+    format       = number 0..3 which specifies which format to use
+                   for satellite objects.
+                   0) Show as "AO40    E" (plain)
+                   1) Show as "AO40 126E" (with kepler data epoch)
+                   2) Show as "AO40 0805" (with kepler data date, ddmm)
+                   3) Show as "AO40 0508" (with kepler data date, mmdd)
+
+    example:
+
+    sat_obj_format: 2
+
+  Block:
+  ------
+
+    block: [<from-ports>] <call>[,<call>]...
+
+    from-ports   = optional <port>[,<port>]... or "all" for which this
+                   block: is valid. If not present it is valid for "all"
+    port         = 1..(number of last active port)
+    call         = source call from which no frames are accepted
+
+    example:
+
+    block: N0CALL,NOCALL,MYCALL
+
+  Via_Block:
+  ----------
+
+    via_block: [<ports>] <digi>[,<digi>]...
+
+    ports        = optional <port>[,<port>]... or "all" for which this
+                   via_block: is valid (both from this port and to this
+                   port!). If not present it is valid for "all"
+    port         = 1..(number of last active port)
+    digi         = digipeater call from which frames that passed it are
+                   not accepted
+
+    example:
+
+    via_block: TCPIP,IGATE
+
+  Allow_To:
+  ---------
+
+    allow_to: <from-ports> <calls>
+
+    from-ports   = <port>[,<port>]... or "all" for all ports
+    calls        = <call>[,call]... destination APRS calls that are accepted
+                   on this port
+    call         = destination call, for example AP*,GPS*,DX*,ID*
+    port         = 1..(number of last active port)
+
+    example:
+
+    allow_to: 2 AP*,GPS*,DX*,ID*
+
+  Allow_From:
+  -----------
+
+    allow_from: <from-ports> <calls>
+
+    from-ports   = <port>[,<port>]... or "all" for all ports
+    calls        = <call>[,call]... originator calls that are accepted
+                   on this port
+    call         = originator call, for example PD*PE*,PA*,PI* to accept only
+                   Dutch stations on this port
+    port         = 1..(number of last active port)
+
+    example:
+
+    allow_from: 1 PD*,PE*,PA*,PI*
+
+  Msg_Block:
+  ----------
+
+    msg_block: [<from-ports>] <digi>[,<digi>]...
+
+    from-ports   = optional <port>[,<port>]... or "all" for which this
+                   msg_block: is valid. If not present it is valid for "all"
+    port         = 1..(number of last active port)
+    call         = source call from which no queries are accepted
+
+    example:
+
+    msg_block: N0CALL,NOCALL,MYCALL
+
+  Digi_Owner:
+  -----------
+
+    digi_owner: <call>[,<call>]...
+
+    call         = call of the digipeater owner
+
+    This needs to be set mandatory in the .ini file and shall contain
+    at least 1 call.
+
+    example:
+
+    digi_owner: PE1DNN,PE1DNN-7,PE1MEW
+
+  Enable_Exit:
+  ------------
+
+    enable_exit: 0 | 1
+
+    0            = disable remote shutdown feature
+    1            = enable remote shutdown feature (digi_owner only!)
+
+    example:
+
+    enable_exit: 1
+
+  Enable_Ptt_Command:
+  -------------------
+
+    enable_ptt_command: 0 | 1
+
+    0            = disable remote !ptt command feature
+    1            = enable remote !ptt command feature (digi_owner only!)
+
+    example:
+
+    enable_ptt_command: 1
+
+  Enable_Out_Command:
+  -------------------
+
+    enable_out_command: 0 | 1
+
+    0            = disable remote !out command feature
+    1            = enable remote !out command feature (digi_owner only!)
+
+    example:
+
+    enable_out_command: 1
+
+  Logfile:
+  --------
+
+    logfile: [<filename>]
+
+    filename     = name of the file to write logdata to, no filename
+                   means no logging
+
+    example:
+
+    logfile: digi_ned.log
+
+  Digi_Call:
+  ----------
+
+    digi_call: <call>
+
+    call         = call of the digipeater
+
+    This needs to be set mandatory in the .ini file.
+
+    example:
+
+    digi_call: PE1DNN-2
+
+  Digi_Dest:
+  ----------
+
+    digi_dest: <call>
+
+    call         = destination call used for beacons and messages
+
+    This needs to be set mandatory in the .ini file.
+
+    example:
+
+    digi_dest: APND14
+
+QUERIES:
+--------
+  What else can be done?
+
+  You can ask DIGI_NED some questions through APRS messages. This is
+  similar functionality as the Tiny-Web-Pages suggested by Bob
+  Bruninga, WB4APR.
+
+  In DIGI_NED the query mechanism works with normal standardized APRS
+  messages. To start with DIGI_NED responds to the ?APRS? broadcast
+  message; DIGI_NED will transmit all its beacons. All other messages
+  must be addressed to DIGI_NED. Most of the responses have to be
+  acknowledged by the receiver.
+
+  DIGI_NED repeats responses up to 10 times, doubling the interval at
+  each attempt. Of course these retransmissions cease when a
+  acknowledgement has been received.
+
+  The following commands are recognized:
+
+  ?help    - shows a short overview of all commands
+  ?id      - shows the own call and the call of the DIGI_NED owner
+  ?ver     - shows version and date and time of compilation
+  ?up      - shows date and time of the last restart
+  ?type    - shows that this is DIGI_NED
+  ?ports   - shows the number of available ports
+  ?aprsd   - shows directly heard station, maximal 5, no ack
+  ?mheard  - shows help for the mheard command
+  ?mheard 1      - shows heard stations on port 1
+  ?mheard pe1dnn - shows when pe1dnn was last heard, with port number
+  ?mh...   - just like mheard, only shorter
+  ?dx      - shows help for the dx command
+  ?dx 1      - shows best dx on port 1, all history, last 24h and last hour
+  ?dx pe1dnn - shows distance and bearing to pe1dnn
+  ?ping?   - shows the path of the requester to the digipeater, no ack
+  ?exit    - stops DIGI_NED remotely (only the owner can do this and
+            the feature must be enabled in the digi_ned.ini file)
+  ?exit 12 - same as ?exit, exists with exit-code 12
+  ?aprsm   - retransmits all unacknowledged messages for the requester
+  ?aprst   - same as ?ping?
+
+  The '?' can be omitted and is supported for APRS specification
+  compatibility. There can be many more messages. All the messages
+  returning a static text are stored in a file which you can modify to
+  suit your needs. The file is defined with "message_file:" in
+  digi_ned.ini, default is digi_ned.mes. The layout of the digi_ned.mes
+  file is explained in the sample file, which is shipped with DIGI_NED.
+
+  Note that some commands cause beacon transmissions or transmission of
+  object data and item locations instead of a return message. Commands
+  like "?aprsm" do not return anything if there are no pending messages
+  for you. "?ping" and "?aprst" send messages which do not need to be
+  acknowledged. If reception fails you will not see an answer either.
+
+  A specific command from a user is only accepted once in
+  "message_keep_time:" seconds, default: 900 seconds. When a user sends
+  the same command within this time again then DIGI_NED will not
+  respond, only acknowledge the message.
+
+  This means for example that a user cannot send two "?info" commands
+  to DIGI_NED within this time, on the second command DIGI_NED will not
+  respond and only acknowledge the message. If the user tries the
+  "?info" command again after 900 seconds then the user will get a
+  normal response on the "?info" command. After sending an "?info"
+  command a user can send another command without any problems, for
+  example "?up" will work normally. A second "?up" command will not
+  yield a response however.
+
+  The reason for this behavior is to avoid problems when two
+  auto-responding systems are starting to respond to each other, this
+  will go on infinity if nothing is done about it. With this measure a
+  message will Ping-Pong only once and then it will be silent again. If
+  a quarter of an hour is not sufficient in your case then increase the
+  "message_keep_time:" value.
+
+  There is one-time bypass for this. If you really want the execution of
+  the same command again you can add or omit the '?' in front of the
+  command, DIGI_NED duplicate filtering will in that case see a
+  difference, although the response will bet exactly the same with or
+  without the '?'. So in the above example you can use "info" and get a
+  response if the previous command you used was "?info". Note also that
+  for example the Kenwood TH-D7 suppresses duplicate answers, you may
+  not see the answer if you already have it!
+
+  The ?exit command is meant for the owner of the digipeater. The
+  command "?exit" has some restrictions; the following must be true for
+  the command to work:
+
+  1) The command must be enabled in DIGI_NED.INI
+  2) The message must originate from the DIGI_NED owner
+
+  When one or more of the conditions are not true then DIGI_NED will
+  send the default help information.
+
+  After reception and recognition of the ?exit command the digipeater
+  will send a "shutdown" message without any digipeaters in the path
+  (the receiver shall to be local and receive the digipeater directly).
+  When this message is acknowledged the digipeater will shutdown. The
+  "shutdown" message is repeated up to 3 times; if an 'ack' is still
+  not received after the third attempt the digipeater will go back to
+  normal operation as if it never received an ?exit command.
+
+  DIGI_NED uses a number of exit-codes that may be useful in .bat file.
+  An example of this can be found in "run.bat".
+
+  The exit-codes are:
+
+  -1 error at startup (AX25_MAC not loaded, mandatory settings in
+     DIGI_NED.INI forgotten?)
+  0  okay, normal exit (with keyboard, ALT+X)
+  1  exit by test code (only for debug versions)
+  2  exit by remote ?exit command
+
+  Optionally a number between 0 and 255 can be used with the ?exit
+  command; e.g. "?exit 10". In that case the supplied value will be
+  used as exit-code. This way all kind of other programs can be started
+  with a batch file after stopping the digipeater. Look at "run.bat"
+  for an example that uses the standard exit-codes. This can be
+  extended to start other programs such as NetCHL to remotely maintain
+  the system on which DIGI_NED runs and add new settings and software.
+
+  For Linux this also works, but because with Linux you can run many
+  programs in parallel without any problem anyway this feature is not
+  really needed. But it works.
+
+  The paths used for replies and acks are defined in DIGI_NED.INI. For
+  each port a "message_path:" can be defined; 'all' can be used too use
+  the same path for all ports. Also ports can be combined, e.g.
+  "message_path: 1,3 WIDE,TRACE6-6" sets the path for ports 1 and 3.
+
+  Definition of a "message_path:" for each port makes it possible to
+  transmit responses through different paths. It is even possible to
+  define more than one path for a port, this results obviously in more
+  traffic! This is needed when a digipeater in the path through which
+  the response needs to be transmitted is not an APRS style digipeater;
+  the exact station call is needed. When a message has to be delivered
+  through 2 such digipeaters 2 different paths are needed. This is
+  conflicting with the idea of "generic digipeating", but it is
+  possible.
+
+  The "owner" of the digi also has the right to execute a few other
+  functions. Later these will be replaced by a "member" feature but
+  since this is still experimental only the owner(s) (you can supply
+  more calls on the "digi_owner:" line, see sample digi_ned.ini).
+
+  The extra commands for the owner are, besides "?exit" the commands
+  "!clear", "!ptt" and "!out".
+
+  "!clear" is used to remove entries from the "mheard" list. There are
+  three options. "!clear" on its own cleans the whole "mheard" list.
+  When used with a port number, e.g. "!clear 2" then all entries for
+  the given port are cleared from the "mheard" list. When used with a
+  call, e.g. "!clear pe1dnn-7" then the given call is cleared from the
+  "mheard" list.
+
+  "!ptt" is used to disable or enable transmission on a port. For example
+  "!ptt 111011x1". The left most digit is for port 1, then port 2 up to
+  port 8. Binary "0" means disabled, binary "1" means enabled. In the
+  example transmission on port 4 is disabled. Values "x" and "/" are
+  used as "don't change". With the previous example port 7 doesn't
+  change value, if it was "0" it will stay "0", if it was "1' it will
+  stay "1". If you only need to provide the number of digits for the
+  ports you have or want to change. For example to change only port 2 to
+  "1" you may want to use "!ptt x1"; the not mentioned ports will not
+  change.
+
+  For information about "!out" see the "Remote Control" section below.
+
+DX Functions
+------------
+  DIGI_NED has a DX function build in. First of all you can get distance
+  information through queries. This works with the command ?DX. It works
+  like ?MH - with port number or call. It uses the entries in the MHEARD
+  list, so when the MHEARD list is small the DX will also not give much.
+  DX with port number 1 returns for example the next 3 messages:
+
+  DX-P1 of all   263.3 km D0BRP       DO4BH-1
+  DX-P1 of 24h   161,4 km DO4BH-1     PD0JBR-1
+  DX P1 of  1h   123.9 km PA3ESK-2    PE1ABT-15
+
+  The first is the best DX for all entries available in the MHEARD list.
+  It shows the distance to best DX station, the call of the best DX
+  station and second-best DX station.
+
+  The second and third lines are almost the same, but the second is for
+  the stations received in the last 24 hours and the last for stations
+  received in the last hour.
+
+  If there is no second best DX station then only one call is shown.
+  The duration over which is measured (all, 24h, 1h) is specified in the
+  .ini file, this can be changed in steps of one hour.
+
+  Tip: ports are numbered 1 to 8, number 0 can be used to mean
+       "all ports". This also works for the MHEARD command by the way
+
+  We can zoom in on a station with "DX <call>" for example
+  "DX PD0JBR-1"
+
+  This returns:
+
+   PD0JBR-1     138.1 km  bearing 026 degrees
+
+  It shows distances and bearing from the digipeater to this station.
+  Distance uses a great-circle calculation, bearing is based on a flat
+  earth model. Bearing "0" is True North.
+
+  The DX <call> not only works on calls returned by DX <port> command but
+  on all calls in the mheard list. Like MH also port 0 is accepted to
+  mean 'any port'. If there is no distance and bearing information the
+  returned message will say so.
+
+  When a station is received which is the 'best DX' over a period of time
+  then is will be announced by means of a DX bulletin which can be caught
+  by a TH-D7 or TM-D700 radio for example. There is a threshold value
+  defined in the .ini file, which specifies the minimum distance for DX.
+  Distances below this value are never DX. The period of time over which
+  the 'best-DX' is determined is as specified in the .ini file. The rule
+  with which this is specified is "dx_level:".  This can be set for each
+  port, because DX on for example 6 meters is a totally different distance
+  then DX on 70cm.
+
+  With "dx_path:" the destination call and path can be specified which is
+  used for the DX announcements. This can be set differently for each port.
+
+  After a DX announcement has been send a new announcement it will not be
+  send if the same station is heard again within a period of time. This
+  period is determined by the "keep_time:" parameter, the same, which is
+  also used for duplicate checking. If after this period the same station
+  is heard again and this station is still the best DX, then a new DX
+  announcement is transmitted. If a better new DX is received within the
+  "keep_time:" period (or after..) then is announced immediately. This
+  mechanism only avoids duplicate transmissions of exactly the same DX
+  message and does not delay new data.
+
+Telemetry
+---------
+  DIGI_NED is capable of transmitting telemetry data with fixed
+  intervals. The telemetry data is transmitted as an APRS type 'T'
+  identifier. With this type of message an APRS station can transmit 5
+  analog sources and an 8 bit digital source. In DIGI_NED a command
+  "telemetry:" can be added to the startup .ini file. With this command
+  the frequency of the transmission can be specified, the ports where
+  this telemetry has to be send to. Then a list of sources can be
+  supplied, fist the 5 analog sources and as last the digital source. A
+  source can be used multiple times if you want.
+
+  There are currently 3 sources:
+
+  'off':     placeholder, always delivers 999 as value on an analog
+             source or 11111111 when used as digital source.
+  'lpt<n>:   reads the status register of the given lpt port. This will
+             give the status of the bits 'Busy', 'Ack', 'Paper Empty',
+             'Select' and 'Error'. The bits represents the logical value
+             on the parallel port's pins. 'Busy' is inverted by
+             hardware, but this is compensated in DIGI_NED. The low
+             order 3 bits of the status register are always set to '0'.
+  'lpt<n>_8: reads the status register of the given lpt port using
+             multiplexing. First the 'strobe' output is made logical
+             low and the 4 bits are read from the 'Busy', 'Ack', 'Paper
+             Empty' and 'Select' bits. These bits represent the lower 4
+             bits of a byte. Then the 'strobe' output is made logical
+             high and the same 4 bits are read for the high nibble of
+             the byte. When connecting a simple 8 to 4 multiplexer TTL
+             chip you now can easily create an 8 bit input.
+
+  For more information about the use of the LPT port see also the web
+  site: http://www.beyondlogic.com/. The LPT inputs are TTL level.
+
+  The analog values in the APRS telemetry command are numbered A1..A5,
+  the binary bits are numbered B1..B8.
+
+  When using the LPT port as analog source the value read from the LPT
+  status port, or the 8-bit value from the multiplexer, are used put
+  into the analog field as decimal value (0..255).
+
+  When using the LPT port as binary source the following mapping is
+  used:
+
+  | APRS | 5 bit input        | 8 bit input
+  |  B   | lpt<n>             | lpt<n>_8
+  -------------------------------------------------------------------
+  |  B1  | pin 11 (Busy)      | pin 11 (Busy)      when pin 1 = '1'
+  |  B2  | pin 10 (Ack)       | pin 10 (Ack)       when pin 1 = '1'
+  |  B3  | pin 12 (Paper Out) | pin 12 (Paper Out) when pin 1 = '1'
+  |  B4  | pin 13 (Select In) | pin 13 (Select In) when pin 1 = '1'
+  |  B5  | pin 15 (Error)     | pin 11 (Busy)      when pin 1 = '0'
+  |  B6  | '0'                | pin 10 (Ack)       when pin 1 = '0'
+  |  B7  | '0'                | pin 12 (Paper Out) when pin 1 = '0'
+  |  B8  | '0'                | pin 13 (Select In) when pin 1 = '0'
+
+  APRS has a method of specifying what all the telemetry information
+  means. This is done by means of an APRS message, which is addressed
+  to the digipeater itself. In this version of DIGI_NED it is just
+  transmitted as a beacon. To use this you have to change the beacon
+  file to have call of your digipeater in it.
+
+  If the APRS program you use supports it, it will show the telemetry
+  data with the correct labels and units. It can even do some equations
+  and determine if a '1' bit in a binary value means 'active' or
+  'inactive'.
+
+  With PARM. the 'label' or 'name' of the parameters are specified.
+  Each analog value can have a name and each bit of the binary value
+  too. In the example digi_tlm.ini file for example 'A1' has the name
+  'Battery' and 'B1' has the name 'Busy'. You could change 'Busy' to
+  'Lamp' for example.
+
+  With UNIT. the unit in which the parameter should be expressed is
+  defined. For Battery the unit is for example 'volt'. If the analog
+  field is for example '12' then this could be displayed as:
+
+  'Battery 12 volt' using the information from our example.
+
+  For binary values the word 'is' can be used for active and 'not' for
+  inactive bit values. Without modification 'B1' could be displayed
+  as:
+
+  'Busy is high', but when changing the 'Busy' name to 'Lamp' and unit
+  'high' to on this would be 'Lamp is on', now it is clear what this
+  bit means!
+
+  Now you can also do some simple equations. For each analog value 'x'
+  the equation:
+
+  value = a x^2 + b x + c
+
+  is used, where 'a', 'b' and 'c' are defined for each port using an
+  EQNS. message. Default are 'a' and 'c' zero and 'b' one, so there is
+  no change to the analog value.
+
+  With the EQNS. message this can be changed. For example say the
+  analog value is expressed in tenths of volts for the battery and
+  has a start value of 6 volts. Then you may want to divide the value
+  by 10 before displaying. If you have analog value 60 then you mean
+  that the battery potential is 12 volts. In this case you want to
+  multiply the value by 0.1 (value for 'b') and add 6 volts to the
+  measured value ('c'). 'a' shall stay zero.
+
+  To achieve this the values 0,0.1,6 have to be supplied for A1. All 5
+  analog ports can be specified this way in sequential order.
+
+  The last message that gives information is BITS. This one tells when
+  a bit should be regarded as active.  The BITS. message has 8 bits.
+  If the first bit is '1' that means that the B1 value is regarded
+  as active when it is logical high. A '0' means that a logical low is
+  active. So if you connect a lamp-on detection to B1, which is low
+  when the lamp is on, then the bit in the BITS. value shall be '0'.
+  Default is BITS.11111111 which means that on all bits a '1' means
+  active. For our inverting lamp detection this should be changed to
+  BITS.01111111. Now a telemetry aware program will say 'lamp is
+  on' when the B1 value is '0' or 'lamp is off' when the B1 value is
+  '1'.
+
+  Telemetry is send at the interval specified with the "telemetry:"
+  rule. Now you may want information now, or don't transmit at all.
+  In that case you can query the digipeater with ?TLM. As argument you
+  have to supply which telemetry info you want. This can be A1 to A5
+  or B1 to B8. To query for example the first digital value you send
+  the query "?TLM B1" to the digipeater. The digipeater will respond
+  with "B1 not high" or "B1 is high" depending on the state of B1.
+
+  Now we just specified all these beacons which tells more about the
+  telemetry information, these can be used by DIGI_NED itself too.
+  When you supply the filename of the beacon file containing the
+  telemetry information to the "tele_info:" rule then DIGI_NED will
+  use this information (PARM., UNIT., EQNS. and BITS.). When we have
+  put our "lamp" example in the information the "?TLM B1" will return
+  "lamp not on" or "lamp is on". Likewise "?TLM A1" can return for
+  example "Battery 13.5 volt".
+
+  These queries are independent of the beacon transmissions. If you
+  only want to query, but do not want any telemetry transmitted  you
+  can specify the interval on the "telemetry:" rule as '0'. Then
+  telemetry is never transmitted. You can also stop sending the
+  telemetry information, but still feed the beacon file to the
+  "tele_info:" rule to get the nice responses.
+
+  A word of warning: The names you specify in PARM. and UNIT. are
+  limited in space. And the number of characters you may use differs
+  with each label. Therefore to make APRS compliant beacons it is
+  needed to consult the APRS specification on http://www.tapr.org.
+
+Remote Control
+--------------
+
+  With Telemetry you can read out analog and digital values. It is also
+  possible to set binary values. For this the up to three LPT devices
+  can be used. Each LPT device supports 8 TTL level outputs, which can
+  be set using an "!OUT" message to the digipeater. These TTL outputs
+  are D0 to D7 (pin 2 to pin 9 on the parallel port).
+
+  The !OUT message needs 2 parameters. The first is the LPT port
+  number (1, 2 or 3), the second is the bit-pattern you want to output.
+  You can specify 1 to 8 bits. Each bit can be '0' to change the bit
+  into logical low, '1' to change the bit to logical high. The value
+  'x' or '/' can be used to leave a bit unchanged. The allocation is as
+  follows:
+
+  !OUT 1 10xx0x11
+    |  | ||||||||
+    |  | |||||||+- D7 (pin 9) -> changed to "high"
+    |  | ||||||+-- D6 (pin 8) -> changed to "high"
+    |  | |||||+--- D5 (pin 7) -> not changed
+    |  | ||||+---- D4 (pin 6) -> changed to "low"
+    |  | |||+----- D3 (pin 5) -> not changed
+    |  | ||+------ D2 (pin 4) -> not changed
+    |  | |+------- D1 (pin 3) -> changed to "low"
+    |  | +-------- D0 (pin 2) -> changed to "high"
+    |  +---------- LPT number
+    +------------- command
+
+  The '/' character does the same as 'x' and its supported because it
+  is conveniently located below the ASCII '0' which makes it easier for
+  a TH-D7 user.
+
+  On the !OUT command you don't have to specify all 8 bits, if you only
+  want to change the output on D0 then you can leave out the
+  specification of all other bits. The bits which are not specified
+  keep their current value.
+
+  In response to the "!OUT" command the digipeater will tell if the
+  command was accepted and the resulting pattern on the LPT port. This
+  bit pattern is arranged the same way as the on the !OUT command, so
+  first D0, then D1, D2...D7.
+
+  Since this function is experimental, the !OUT command is only
+  accepted from the digipeater owner specified with the "digi_owner:"
+  rule. More owners for a DIGI are allowed, see the sample digi_ned.ini
+  file.
+
+Satellite tracking
+------------------
+  Satellite tracing is donated to the DIGI_NED project by Alex Krist,
+  KG4ECV. Alex wrote two papers with information about this function,
+  Sattrack.txt and Sattrack.doc which are included in the distribution.
+  There you will find all the information about this function and how
+  to use it and tell your users how to use it.
+
+Serial line data
+----------------
+  DIGI_NED can be used transmit data from the serial line to any of the
+  configured output ports. DIGI_NED expects serial data in the form of
+  "sentences". These are <CR> terminated ASCII lines. DIGI_NED will pick
+  up selected lines based on the first characters in the line. DIGI_NED
+  will transmit at regular intervals the latest received complete line
+  of data.
+
+  With this DIGI_NED can send data from a GPS, Ultimeter or other devices
+  connected via a serial line. You can sent multiple sentences if you
+  want. DIGI_NED will automatically do a checksum-check if a checksum
+  is present. Checksums terminate a "sentence" with "*xx" where "xx"
+  is the hexadeximal sum. If the asterix is found in the third position
+  before the end of the line DIGI_NED assumes a checksum is present.
+  The checksum is compared with an internally calculated checksum.
+  Sentences that fail will be ignored. The calculation follows the
+  NMEA standard used for GPS devices among others. The checksum is
+  an EXOR operation staring at the second character up to, but not
+  including, the "*".
+
+  If no checksum is present the data is accepted as is. An examples
+  of a start of a sentence is:
+
+  For GPS            : $GPRMC or $GPGGA
+  For Ultimeter      : $ULTW or !!
+  For Directon finder: %
+
+  If the wanted type of sentence is not specified (empty line following
+  the "serial:" rule) all the data on the serial input is accepted (if
+  it doesn't fail the checksum). Note that DIGI_NED will only output the
+  most recently read complete line in this case. Normally DIGI_NED
+  transmits a packet for every specified sentence, so if you specified
+  "$GPRMC $GPGGA" then both the $GPRMC and $GPGGA sentence will be
+  transmitted.
+
+  DIGI_NED will convert any control character on the serial line into
+  a dot ".", except <CR> which is the line terminator and <LF> which
+  is discarded.
+
+  The interface is always 8 bit, no parity, one stopbit. Accepted speeds
+  are 1200, 2400, 4800 and 9600 baud. This covers the mutlitude of serial
+  inputstreams, including NMEA. The interface uses hardware flowcontrol
+  on send an receive. For a 3 wire connection shortcut RTS and CRS and
+  shortcut DTR, DSR and DCD in the connector at the DIGI_NED side of
+  the wire. Software-flowcontrol (Xon/Xoff) is not used.
+
+DIGI_NED Keys
+-------------
+  While DIGI_NED is running you can use ALT-X to exit the program.
+
+  ALT-V toggles the 'verbose' mode on and off. You can shell to dos
+  using ALT-D (only for DOS and only when the COMSPEC environment
+  variable is set correctly).
+
+  On the keyboard you can also do the same queries as you can do via
+  APRS messages. So if you type "help" you will get the help text... If
+  you are running in verbose-mode than you can switch that off with
+  ALT-V to be able to see the responses. When finished you can switch
+  verbose mode on again with ALT-V.
+
+  When you are logging to a logfile then you can stop logging with
+  ALT-L. The logfile will be closed so you can shell to DOS to remove
+  or rename it without a problem. When hitting ALT-L gain the logging
+  will restart, new data will be append to the existing logfile. When
+  stopping and starting a timestamp and a visible separator is written
+  to the logfile.
+
+  The same function as for the logfile also exists for the TNC logfile,
+  this is a logfile in 'tnc' format that can be read by other programs
+  too. To toggle the file off and on use ALT-T (T for TNC...).
+
+  With the "-a" flag you can switch on activity display to see who is
+  sending queries to the digi. You can switch this on and off by the
+  keyboard also using ALT-A (A for Activity).
+
+  ALT-B will force DIGI_NED to send out all its beacons.
+
+  If you can't remember all the keystrokes just remember one simple
+  one, ALT-H. ALT-H will give you a list of all key combinations that
+  are possible in either DOS or Linux.
+
+  Under Linux this all doesn't work unless you sepecify the '-k' flag
+  at the commandline. The implementation is restricted with respect
+  to terminal types, for example backspace only works when it uses
+  ASCII code 0x08. On my RedHat 5.2 system you can use the ALT-<key>
+  combination. If that doesn't work on your system you may press ESC
+  followed by the desired letter instead, e.g. press and release ESC
+  followed by a press and release of H gives you the keyboard help.
+
+  Under Linux you cannot use ALT-D to start a shell, use a different
+  virtual console or different Xterm window instead! You don't realy
+  need the keyboard commands in Linux since you can run may things
+  simultaneously anyway and you can do queries through an internal
+  loopback connection with XASTIR for example (that's how I test
+  my stuff also). I found it however convinient during testing of
+  the queries and the satellite support (see sattrack.txt) since
+  it works much faster then commands via the loopback or via RF.
+
+LOCAL USE
+---------
+  A digipeater in the APRS network can come and go. Problems arise when
+  too many non-intelligent digipeaters are in a small area. This can
+  easily happen in cities because of the dense population and lots of
+  inadequately covered areas that appear in such areas due to buildings.
+  These building blocks direct access to the nearest WIDE.
+
+  A station in such a 'black-hole' needs in that case a digipeater in the
+  neighborhood which will convey signals from the station to the WIDE and
+  which digipeats signals from the WIDE to the station.
+
+  Signals from the WIDE which are repeated by the "gap-fill" digipeater do
+  not need to be digipeated once more by other digipeaters; those other
+  digipeaters can pickup those signals already directly from the WIDE. The
+  signals from the local station however should be digipeated; at least by
+  the WIDE!
+
+  With DIGI_NED a port can be assigned "local:". Data that is send
+  directly to the digipeater will be digipeated normally on a local port;
+  there is no difference with non-local ports. Data which is not directly
+  send to DIGI_NED but first passed through another digipeater, for
+  example the aforementioned WIDE, will on the local port be transmitted
+  with a truncated "via" list; digipeaters in the "via" list which are not
+  "used" yet are removed. This way another digipeater will not handle the
+  digipeated data anymore (unless the other digipeater has an "digiend:"
+  rule to pick up the data again).
+
+  For intelligent digipeaters this is not really needed; data from the
+  WIDE will also been received by the other digipeaters in the
+  neighborhood and when a digipeater retransmits the messages than those
+  other repeaters will not respond because the data has already been
+  handled before. When digipeaters in the area are however not intelligent
+  than they would just digipeat the data once more. This will result in a
+  lot of needless traffic. In that case the port of DIGI_NED on which the
+  data is transmitted can be assigned "local:" so there are no digipeater
+  calls left anymore on which surrounding dumb digipeaters could react.
+
+LINUX
+-----
+  The version for LINUX is almost identical to the DOS version. For Linux
+  AX25_MAC is not needed, this function is embedded in the Linux kernel.
+  Instead '-p' options have to be used to specify which AX25 ports should
+  be used. The possible ports are define in the /etc/ax25/axports file,
+  see the AX25-HOWTO for details. You have to compile the Linux version
+  yourself. The makefile is setup for use with the new kernel tools for
+  2.4.16 kernels. For use with the old kernel-tools the Makefile has to be
+  changed; add an '#' at the start of de "INTERFACE=NEW_AX25" definition
+  and remove the # from the line reading "#INTERFACE=OLD_AX25".
+
+  Alternatively you can choose not to use the kernel AX25 support and use
+  a KISS TNC directly connected to a serial line, or use a TCP/IP network
+  connection to a PC running the AGW Packet Engine. For KISS all
+  lines with INTERFACE in the Makefile should start with a #, except the
+  line reading: INTERFACE=KISS. For AGWPE all INTERFACE lines should be
+  commented except: INTERFACE=AGWPE.
+
+  Only one INTERFACE line may be enabled, you cannot use more than one type
+  of interfacing at the same time.  The text below assumes use of the
+  kernel AX25 support. For the commandline options for the other interfaces
+  execute "digi_ned -h" after building DIGI_NED for the desired kind of
+  interface.
+
+  Note that when using the KISS or AGWPE interface you can even compile
+  and run DIGI_NED in a Cygwin environment under Windows (see
+  http://www.cygwin.org/ how to setup Cygwin).
+
+  Building DIGI_NED is as usual for Linux: "make depend" followed by
+  "make". This results in an executable "digi_ned". This executable uses
+  just like the DOS version a digi_ned.ini file, exact the same file as
+  for DOS can be used. '\' characters in file-paths will be interpreted as
+  '/' for Linux (and '/' will be interpreted as '\' in DOS...).
+
+  Port '1' is linked to the first port defined with the '-p' option,
+  port '2' is linked to the second specification etc. Up to 8 ports
+  can be uses. A start example:
+
+        ./digi_ned -p 1k2 -p lfbb -v
+
+  In this example "1k2" will be port 1 and "lfbb" port 2. The '-v' option
+  enables verbose output. DIGI_NED only works with kernel interfaces,
+  using that you can connect almost everything, read the AX25-HOWTO how
+  to do that.
+
+  Note that DIGI_NED has to run under 'root' privilege to be able to
+  listen on a socket for incoming packets, just like 'listen', 'net2kiss'
+  and other programs that listen for connectionless traffic on a socket.
+
+  To exit the program under LINUX signal SIGINT has to be send to the
+  program. Normally this signal is generated by Ctrl-C, but it does not
+  need to be so. For more information see the "stty" command. A simple
+  shell script is provided to start DIGI_NED in background.
+
+IGATE
+-----
+  Some people asked me if DIGI_NED would function as IGATE. Since DIGI_NED
+  is build for DOS and Internet with DOS is not easy to handle, DIGI_NED
+  can't. But that doesn't mean that you cannot use DIGI_NED with an IGATE
+  under Linux. Linux - and any Unix - is following the Unix philosophy of
+  having small building blocks with dedicated simple tasks (I dislike
+  large monolithic programs on Linux for that reason).
+
+  Using this building blocks you can easily build a "loopback" connection
+  with pseudo TTY's. On one end you can connect DIGI_NED, on the other end
+  you can connect the IGATE software.
+
+  To visualize what I'm going to explain:
+
+                        DIGI_NED                    IGATE-sw
+                            |                          |
+                     +------+------+              +----+------+
+                     |             |              |           |
+   AX.25 ports ---- 1k2 -------- ldigi -------- lgate -       |
+                     |             |              |           |
+   Network IF ----- bc0 --------- ax0 -----------ax1---     TCP/IP
+                     |             |              |
+                /dev/ttyS0     /dev/ttyq1    /dev/ttyq2
+                     |             |              |
+                   Radio       /dev/ptyq1    /dev/ptyq2
+                                   |              |
+                                   +-- kissnetd --+
+
+  This is how this is set up:
+
+  First have the KISS module loaded (kissnetd creates KISS devices):
+
+            echo 'Starting AX25 loopback drivers'
+            modprobe mkiss
+
+  Then start "kissnetd" on 2 pseudo TTY's in background:
+
+            /usr/sbin/kissnetd /dev/ptyq1 /dev/ptyq2 &
+            sleep 4
+
+  Wait for "kissnetd" to be started, than take the other end of these
+  pseudo TTY's - which act as KISS - and create two network interfaces
+  which are related to two ax25 ports. In my setup this will create
+  interfaces ax0 and ax1.
+
+            /usr/sbin/kissattach /dev/ttyq1 -l ldigi
+            /usr/sbin/kissattach /dev/ttyq2 -l lgate
+
+  Now I configure ax0 and ax1 and declare them as "up".
+
+            /sbin/ifconfig ax0 10.0.0.1 netmask 255.255.255.255 \
+                           mtu 256 hw ax25 PE1DNN-7 up
+            /sbin/ifconfig ax1 10.0.0.2 netmask 255.255.255.255 \
+                           mtu 256 hw ax25 PE1DNN-8 up
+
+  So now I have 2 ax25 ports "ldigi" and "lgate" which are connected to
+  each other. Now you can run DIGI_NED on "ldigi" and have IGATE software
+  take frames from "lgate" and send them over The Internet. Frames from
+  The Internet are send to "lgate" and enter DIGI_NED via "ldigi".
+  DIGI_NED will digipeat frames from "1k2" (from the radio via a BayCom
+  modem) to "ldigi" and frames from "ldigi" are digipeated by DIGI_NED to
+  "1k2" and will be transmitted that way. This should work just fine.
+
+  The sample /etc/ax25/axports file for this setup is:
+
+  # name  callsign         speed    packlen  window  description
+  1k2     PE1DNN-7         0        250      4       BayCom on Radio
+  ldigi   PE1DNN-8         0        250      4       Entry for DIGI_NED
+  lgate   PE1DNN-9         0        250      4       Entry for IGATE
+
+  There is a lot you can do with Linux so that's why I'm not sure I want
+  to build an IGATE into DIGI_NED. There are a lot of building bricks to
+  accomplish what you want. I hope this helps to give an impression on how
+  you could setup DIGI_NED together with IGATE software.
+
+FAQ
+---
+  Q: My beacon shows up at the wrong place, is this a bug?
+
+  A: DIGI_NED does nothing intelligent with the beacon text and just sends
+     it. One gotcha may be that the degrees and minutes are base 60 but the
+     seconds value is base hundred.
+
+     So if your location is N40o29'15", W105o04'54" then that will be
+     4029.25 and 10504.90 in the beacon file. So for this position it
+     should be something like:
+
+     =4029.25NN10504.90E#PHG2110/DIGI_NED: N0ABC-2
+
+  Q: In the ini file I see the line -
+
+     digipeat: all DIGI_CALL all
+
+     Do I replace 'DIGI_CALL' with the callsign of my DIGI_NED station or
+     is that done within the code?
+
+  A: That's done within the code, this is replaced by whatever you
+     specified with:
+
+     digi_call: n0abc-2
+
+     So this is equivalent to:
+
+     digipeat: all n0abc-2 all
+
+  Q: Here's some captured text from the DIGI_NED.
+
+     *****begin quote*****
+
+     from:1 KF0ZH > APR819 via GATE* FTCOL* UIv PID=F0 68 bytes
+     @291427z4447.06N/09329.48W_267/002g001t054r000p000....h97b10
+     173dU2k
+
+
+     ===========
+     DigiEnd: Digipeater last done 'FTCOL', hop 2
+     No matching rule: ignore frame
+
+     *****end quote*****
+
+     FTCOL is a local digipeater with the tactical call FTCOL. There is
+     another local digi with the tactical call CSU (Colorado State
+     University).
+
+     It looks like DIGI_NED is not doing anything with packets with
+     FTCOL in the path, is this correct?
+
+  A: As you can see by the '*' after each digipeater call, all digipeaters
+     along the path already handled the packet. The packet is now at the
+     end of its journey.
+
+     In this case DIGI_NED will search for a 'digiend:' rule. DigiEnd is
+     used to pick up packets that have no unused digipeaters. The rules
+     act on the last digipeater in the chain. In this case there are no
+     unused digipeaters (they all have a '*' mark) and DIGI_NED will
+     search for a rule with a call that matches 'FTCOL'. It doesn't find
+     such a rule, there isn't any.
+
+     There are only a few packets in the default .ini file that are picked
+     up again after they were already at their final destination. I have
+     an example in the .ini file which I use to feed packets to another
+     QRG.
+
+     The rule in de default .ini file is:
+
+     digiend: all wide*,trace* 2 add LOCAL
+
+     The rule picks up all the packets received from any port where
+     the last call was WIDE or TRACE or WIDEn-N or TRACEn-N etc (the '*'
+     is a wildcard). I will do the 'add' operation which means that first
+     of all the digipeater call is added and an then in this case LOCAL is
+     appended to the digipeater path. This modified packet is send out
+     through port 2, which is in my case a local 70 cm QRG.
+
+     So if you want to pick up the packets that ended at FTCOL and repeat
+     those, then you have to add a rule for this. Normally packets which
+     are finished should be left alone, but reasons to pick it up could be
+     to cover a black spot or, as in my example, feed the packets to
+     another QRG.
+
+     Example for you that does the trick:
+
+     digiend: 1 FTCOL 1
+
+     This picks up packets from port 1 where the last digipeater was
+     FTCOL, adds your digipeater call (default behavior) and sends it back
+     out to port 1.
+
+     This is what you should see on transmission:
+
+     to:1 KF0ZH > APR819 via GATE* FTCOL* N0EQ-2* UIv PID=F0 68 bytes
+     @291427z4447.06N/09329.48W_267/002g001t054r000p000....h97b10
+     173dU2k
+
+     You could do the same for CSU:
+
+     digiend: 1 CSU 1
+
+     Of course you need to judge for yourself if these packets need to be
+     repeated and if it is not causing loops.
+
+  Q: Do I understand the following correctly:
+
+     digipeat: all DIGI_CALL all
+
+     All packets received by my DIGI_NED will be digipeated and have my
+     DIGI_NED station callsign inserted into the packet. Is this correct?
+
+  A: No. Assume "digi_call:" is set to N0ABC-2.
+
+     The rule is specifying: Packets from all ports where the next
+     digipeater call in the via-list that shall be used is N0ABC-2, shall
+     be send out to all ports again. There is no further specification so
+     it will do normal digipeating. This is that that the call of the
+     digipeater in the via path which is to be used up is replaced by the
+     callsign of the digipeater (in this case N0ABC-2 is replaced by
+     N0ABC-2 - no effect) and then the modified packet is send out through
+     all ports (you can have up to 8 ports).
+
+     You can also explicitly take packets from one port and send it out
+     through another. Example:
+
+     digipeat: 1 relay 2
+
+     This means: packets received from port 1 where 'relay' it the next
+     digipeater in the via path that shall be used shall be send out
+     through port 2. Also here not further actions are given so this is
+     also normal digipeating. That means that 'RELAY' is substituted by
+     'N0ABC-2' and the modified packet is send out through port 2.
+
+     So if you receive this on port 1:
+
+     W0ABC>APRS,GATE*,RELAY,WIDE
+
+     Then the second 'RELAY' call is the next digipeater to act on (the
+     GATE call is marked with an '*' so is already passed). Relay is
+     substituted by your call so:
+
+     W0ABC>APRS,GATE*,N0ABC-2*,WIDE
+
+     is the path that is transmitted on port 2. Note that your own call
+     also gets a '*' because this hop in the via list is now handled. The
+     next digipeater will act on the 'WIDE' call.
+
+  Q: How can I prevent transmission of bad paths?
+
+     Let's say I receive a packet from a station who's UI-path is
+     RELAY,RELAY,RELAY,WIDE,WIDE,WIDE, an obvious bad path. What and how
+     would I modify in the ini file to convert that to a more acceptable
+     path?
+
+  A: It depends on how far the packet already progressed in the chain, so
+     the digipeater call following the "*" symbol on reception. If there
+     is no '*' on any call you are the first to receive it. Now lets
+     assume you are the first to receive this.
+
+     In the default digi_ned.ini file "RELAY" is just does normal
+     digipeating. So this is what happens in your case:
+
+     in:
+     PE1DNN>APRS,RELAY,RELAY,RELAY,WIDE,WIDE,WIDE
+     rule:
+     digipeat all RELAY all
+     out:
+     PE1DNN>APRS,PE1DNN-2*,RELAY,RELAY,WIDE,WIDE,WIDE
+
+     Now you can make this smarter if you have miss behaving users in your
+     area. You know that 'RELAY' should only be used once as the first
+     digipeater call. Now you can force a path on every station that uses
+     "RELAY" by redefining the path in the digi.
+
+     in:
+     PE1DNN>APRS,RELAY,RELAY,RELAY,WIDE,WIDE,WIDE
+     rule:
+     digipeat all RELAY all new WIDE3-3
+     out:
+     PE1DNN>APRS,PE1DNN-2*,WIDE3-3
+
+     Now all the stations that repeat through you using "RELAY" will get
+     the same path that is in this case your own call and WIDE3-3. So it
+     doesn't matter what your users fill in, after your digipeater relayed
+     it, it is "repaired".
+
+     Fixing paths like this is only something that should be done at the
+     source. When you get this frame:
+
+     in:
+     PE1DNN>APRS,RELAY,RELAY,RELAY,WIDE,WIDE*,WIDE
+
+     then there is nothing you can do to fix the path, is has already
+     progressed almost to the end.
+
+     Something you can do is for example avoid long digipeater paths by
+     replacing TRACEn-N with WIDEn-N.
+
+     in:
+     PE1DNN>APRS,RELAY*,PE1MEW-2,TRACE5-4
+     rule:
+     digipeat: all TRACE5-4 all swap0 wide5-3
+     out:
+     PE1DNN>APRS,RELAY*,PE1MEW-2,WIDE5-3
+
+     So now it is not tracing anymore, keeping the path short and
+     preventing it to grow longer.
+
+     So you can do this kind of things. You cannot make smarter rules
+     saying for example 'if RELAY appears more than 1 time then...', maybe
+     when there is a need for it I might add it, but I think it will make
+     it even more difficult to understand how it works.
+
+     Currently, and that is important to understand, DIGI_NED acts
+     on the repeater that is due for its 'digipeat:' rules. 'digiend:'
+     works on the last digipeater when they are all used up, 'digito:'
+     acts on the destination call when there are no digipeaters in the
+     chain and 'digissid:' acts on the destination call when there are
+     only unused digipeaters in the chain. Since "digipeat:" and
+     "digissid:" could both act on the same packet the "digissid:"
+     rules have a higher priority. When a "digissid:" rule hits,
+     "digipeat:" processing is skipped.
+
+  Q: In the default mode, using the ini file(s) supplied, does DIGI_NED
+     digi all packets?
+
+  A: Well I think (and hope) I covered the APRS generic digipeater calls.
+     If you want to digipeat just everything one simple rule would be:
+
+     digipeat: all * all
+
+     But that does call-replacement on all calls and no smart digipeating.
+
+  Q: Can I change the digi_dest: address APND14 to something else?
+
+  A: Yes, you can. I encourage you only to change it if you want to use
+     your digi in an ALTNET (read the APRS specification, this is voor
+     closed user-groups using an alternative "to" call). I think you
+     should otherwise stick to the default call since this address is
+     assigned to DIGI_NED in coordination with the APRS specification.
+     The APNDxx call conveys information that this is a DIGI_NED digi
+     and this information is understood world wide by APRS applications.
+     Read the specification about the "APRS Software Version Number".
+     APN is now assigned for Intelligent Digi software. The 4th letter
+     'D' indicates DIGI_NED. The '14' at the end means version 0.4.0
+     (in base 36 notation), which will of course be different in newer
+     versions of the software.
+
+  Q: Can we somehow do remote maintenance on DIGI_NED?
+
+  A: You as an owner can send an ?exit command to stop DIGI_NED
+     (if you have enabled this feature in digi_ned.ini). On our
+     local digipeater we start NetCHL after the DIGI_NED stopped
+     running.
+
+     With TCP/IP we can upload new releases, new configurations,
+     beacons etc. After NetCHL exits the digipeater is restarted.
+     This enables maintenance of a digipeater when you don't have
+     easy physical access to it. Use of external tools like NetCHL
+     gives more control and power over the system then I could
+     ever build into the digipeater itself. Under Linux you can of
+     course do much more since you can run multiple programs in
+     parallel.
+
+  Q: Can we ?ping? ourselves or force an output beacon?
+
+  A: Yes, you can send ?APRS? as a message which behaves the same
+     as the ?APRS? broadcast by sending all its beacons.
+
+     If you use the DOS version you can type ?aprs?<enter> on the
+     keyboard to force a beacon.
+
+  Q: Can I use the queries locally from the keyboard?
+
+  A: Yes for the DOS version, not for Linux. You can type any query at the
+     keyboard in DOS. DIGI_NED will use a fake source "KEYBOARD" and
+     destination "SCREEN". If you cannot see what you are typing or don't
+     see the response because the verbose logging scrolls the text off the
+     screen you can use ALT-V to switch off the verbose messages. When you
+     are finished you can do ALT-V once more to switch it on again. The
+     keyboard queries will not result in transmissions on the radio,
+     except for ?APRS? which will cause beacon transmissions on the first
+     port.
+
+     The Linux version does not need all this, you can use a local
+     loopback and XASTIR to query the digi for example. Linux is a
+     multi-tasking/multi-user system so you can run other programs while
+     DIGI_NED is running which gives you much more power anyway.
+
+  Q: Can I make new queries and responses?
+
+  A: Yes, you can add/modify the "digi_nes.mes" file (or another
+     file defined with "message_file:" in digi_ned.ini).
+
+     When I want to add a query "?blah" which answers "Hello, World!"
+     I have to add the following to the file:
+
+     ?blah
+     Hello, World!
+
+     It is as simple as that. If the message "?blah" or "blah"
+     is send to your DIGI_NED then DIGI_NED will answer to the
+     originator with "Hello, World!"
+
+     When I want to use a short cut for my query I can assign aliases for
+     the command, separated by a pipe symbol '|'. Assume I want a 'b' as
+     shortcut besides 'blah' then I have to change my addition to the
+     following:
+
+     ?blah|b
+     Hello, World!
+
+     This query now responds to '?blah', 'blah', '?b' and 'b' and answers to
+     the originator of the query with "Hello, World!".
+
+  Q: Can we use a second port to feed received data to another APRS
+     program. I.e. can we feed the DIGI_NED data to WinAPRS and have the
+     WinAPRS program function as a second terminal/station? I guess it
+     would be like using DIGI_NED as a LAN hub or router.
+
+     The different software(s) would all look to the DIGI_NED software for
+     it's data and in turn feed their own data to DIGI_NED to repeat back
+     to the TNC for transmit.
+
+  A: Yes you can, the owner of our local digipeater uses this. The
+     easiest way is to use KISS on the second port. In AX25_MAC use the
+     flag -PKISS2 to create a 9600-baud KISS link on COM-2. Let the APRS
+     program you want to use connect to this port in KISS mode via a
+     null-modem cable (cross cable).
+
+     You can extend this even more, if you add the parameter -PKISS3 also
+     to the AX25_MAC command line you will create a second KISS port on
+     COM-3 etc.
+
+     So now you have:
+
+     AX25_MAC -PKISS1 -PKISS2 -PKISS3 -F -C17 -BU50
+
+     The first port will be a KISS port on COM-1 which connects to a
+     KISS TNC, the second port is a KISS port on COM-2 and the third port
+     is a KISS port on COM-3. You can connect APRS programs to COM-2 and
+     COM-3. You can also connect a second KISS TNC to one of these ports
+     to create a cross-band digipeater.
+
+     If the APRS program you want to use supports BPQ frames over Ethernet
+     than you can use that too. On the DIGI_NED side you need an FTP
+     software compatible packet driver for your LAN card and use the
+     '-PBPQ' flag in AX25_MAC to create a BPQ over Ethernet port.
+
+     In Linux you can use a local loopback as also described for
+     connecting an IGATE to DIGI_NED. Instead of the IGATE software you
+     can run for example Xastir at the other end of this internal
+     loopback.
+
+  Q: Can I start a DOS shell without leaving DIGI_NED, I want to
+     make changes to the beacon file.
+
+  A: Yes, you can in the DOS version (in Linux you can always start
+     another shell or run DIGI_NED in background or use Ctrl-Z to stop a
+     running program etc.).
+
+     If you type ALT-D a DOS command interpreter is started. Since
+     DIGI_NED is not so big you have enough memory left to do an editing
+     job. If not then the program 'shroom' may help you, I haven't tested
+     this though.
+
+     DIGI_NED is using the COMSPEC environment setting to determine which
+     interpreter to start. If COMSPEC is not specified the function will
+     fail. Before starting DIGI_NED you can do the following from the DOS
+     prompt:
+
+     C:> set COMSPEC=C:\COMMAND.COM
+
+     COMSPEC now indicates that the DOS command processor is on
+     C:\COMMAND.COM. Of course COMMAND.COM must exist, otherwise the
+     function still fails obviously...
+
+  Q: Can I make a small KISS network with your software do I can
+     connect an APRS program?
+
+  A: Yes. You can do something like this:
+
+                                               -+
+     Radio-----KISS TNC--------COM1-----+       |
+                                        |       |
+                                    DIGI_NED    +- PC number 1
+                                        |       |
+                         +-----COM2-----+       |
+                         |                     -+
+                         |
+                         +-----COM1-----+      -+
+                                        |       |
+                                    APRS-Prog   +- PC number 2
+                                                |
+                                               -+
+
+     On PC number 1 you have to do the following:
+
+     1) Kick the TNC into KISS mode, how this is done depends on the
+        TNC type.
+     2) If applicable change AX25_MAC.INI to set TX-Delay to match
+        your TRX.
+     3) Load AX25_MAC the following way:
+
+        AX25_MAC -PKISS1 -PKISS2 -F -C17 -BU50
+
+        -PKISS1 is a port, type KISS on COM1
+                This is the first specification, will be port 1
+        -PKISS2 is a port, type KISS on COM2 - second spec
+                This is the second specification, will be port 2
+        -F      forces AX25_MAC to read the AX25_MAC.INI file
+        -C17    is a visual indication, you can leave it out
+        -BU50   gives the Mac-layer 50 AX.25 frame buffers,
+                default is 100 so you can leave it out also.
+
+        This will load the driver with 2 kiss ports, one on COM1
+        and one on COM2. I have not specified a baudrate, default
+        is 9600 baud.
+
+        For more information about what you can have on the
+        command-line reading see the AX25_MAC documentation.
+
+     Next you have to configure DIGI_NED:
+
+     4) Change the "digi_call:" parameter in digi_ned.ini. Change the
+        digibcon.ini and digi_id.ini files to reflect your call and
+        position
+
+     5) Start DIGI_NED and it should start digipeating! If you use the
+        '-v' flag on the command-line of DIGI_NED you should see the
+        received data and the actions DIGI_NED takes on it.
+
+     Frames received by DIGI_NED will be digipeated via COM1 to the
+     radio and via COM2 to the connected second PC. You may have to
+     add a 'digiend:' rule to forward the packet that ended its
+     journey, to COM2. Normally a packet with no unused digipeaters
+     left is not repeated anymore, so they would also not arrive
+     at COM2. With 'digiend' you can digipeat packets that are
+     normally spoken 'at the end' so you can still see them on
+     the screen of your APRS program. The default configuration
+     file already contains two lined for this. The first line is:
+
+     digiend: all wide*,trace* 2 add LOCAL
+
+     This will digipeat all packets where the last digicall was
+     WIDE... or TRACE... once more, it adds another digipeater
+     call 'LOCAL'. The first 'all' means "from all ports" the
+     '2' means "to port 2". So packets received from COM1 are
+     send out via COM2; packets received from COM2 are also
+     send out also via COM2. This was setup for cross-band use,
+     you may want to change this to:
+
+     digiend: 1 wide*,trace* 2
+
+     Now only packets received from port 1 are send to port 2.
+     If your local digipeater does call-substitution then you
+     may want to add that call. The second 'digiend:' rule does
+     this for me. 'PE1MEW-2' is our local digipeater. The rule
+     looks as follows:
+
+     digiend: 1 pe1mew-2 2
+
+     This means that all packets received on port 1 (the port is
+     associated with the first -P parameter of AX25_MAC, so the
+     KISS port on COM1 in this case) are send out via port 2,
+     which is the second KISS port.
+
+     6) Setup your APRS program on the second PC and set it up to
+        use a KISS TNC.
+
+        Now the frames from your APRS program should flow through
+        the DIGI to the TNC connected to COM 1. Frames that appear
+        on COM 1 are repeated on COM 2 and end up at the screen
+        of your APRS program.
+
+  Q: How about using Bob Bruninga's idea for a ZIP-lan, can I do
+     that (for information about ZIP-lan see the DosAPRS
+     distribution)
+
+  A: I think you can use this ZIP-lan setup without modification
+     with DIGI_NED as master.
+
+     There are three important differences though:
+
+     1) The packet exchange between the stations is done in KISS
+        instead of plain text.
+
+     2) Packets from the slave stations are digipeated to the
+        TNCs, this means that the stations must have a real call
+        and not a pseudo call. You can use pseudo calls to block
+        transmission from slaves if you want to, you then have to
+        add the call to the 'block' list. You can also set a slave
+        to 'NOCALL', that's in the 'block' list already. For the
+        stations you want to have transmission you can use a
+        distinct SSID.
+
+        Another option is use specific digipeater call. Use for
+        example
+
+        PE1DNN>APRS via ZIPLAN
+
+        If there is no rule in DIGI_NED for 'ZIPLAN' then it will
+        not be digipeated. Then you can make another one
+
+        PE1DNN>APRS via ZIPTNC
+
+        And add the following rule to the DIGI_NED.INI file:
+
+        digipeat: 1 ZIPTNC 1 new WIDE,WIDE2-2
+
+        Then packets received from port 1 where the next digi to be
+        used is ZIPTNC are send out through port 1 with a new path
+        WIDE,WIDE2-2 (example only!).
+
+     3) Packets from the slave are not send as 'third party'
+        messages, DIGI_NED prevents loops by not repeating packets
+        that it transmitted already by looking for its own call
+        in the digipeater list and by remembering CRCs of already
+        repeated data. That's enough to prevent loops. DIGI_NED
+        never repeats its own packets.
+
+     The setup of the DIGI is as I described already, see the
+     question above about the KISS network. This time you need
+     only 1 KISS port. You can also use 2 ports, one with the
+     TNC and one with the ZIP-Lan. That way you can shield the
+     slaves even more, you can set it up so that all transmissions
+     from the slave are not digipeated unless it is via 'ZIPTNC'.
+     With a one-wire solution the slave can still use 'WIDE' as
+     destination and will be digipeated. So two wires is a little
+     bit more fool-proof and resistant against accidents if a
+     slave still has a 'normal' path.
+
+     Of course you have to realize that collisions on the ZIP-lan
+     corrupts packets, but this is not different for KISS than it
+     is for plain text, this is the simplicity of the ZIP-lan.
+     There is a chance that these corrupt packets are transmitted.
+
+     You have to experiment with this but when looking at it I
+     currently don't see any problem why it should not work. I'll
+     be very interested to hear practical results on this.
+
+  Q: I think I found a bug, what do I do?
+
+  A: Please report to me at "pe1dnn@amsat.org". Also read "Bugs.txt"
+     to find out more.
+
+  Q: DIGI_NED does not digipeat my AX.25/IP/NETROM/ARP packets anymore,
+     is this a bug?
+
+  A: No. DIGI_NED now has a so-called "Kenwood mode". This will truncate
+     packets that are to long to save the APRS mode on the TH-D7E from
+     failing. The default is "kenwood_mode: 1", which truncates packets
+     which are too long to be handled by the TH-D7E.
+
+     Since you don't want the digi to truncate normal AX.25 traffic
+     packets or any other packet, these packets are not digipeated in
+     this mode.
+
+     If you specify:
+
+     kenwood_mode: 0
+
+     in the .ini file, than the digipeater will not truncate packets
+     anymore and behave the same as earlier versions of DIGI_NED.
+
+     Another option is "kenwood_mode: 2", in that case packet are not
+     truncated but they are ignored. Also in this mode you cannot make
+     an AX.25 connection or send IP, NETROM or ARP packets via the
+     digipeater.
+
+  Q: I think that DIGI_NED is a great idea but I feel not stoppng a packet
+     like the Kantronics TNC is somthing that needs to be changed.
+
+  A: All the transitions done by DIGI_NED are programmed as "rules" in a
+     file (default digi_ned.ini). It can easily be changed to behave equal
+     to what the Kantronics TNC does. The only thing that needs to be done
+     is for example for WIDEn-N digipeating the rules used for the last hop:
+
+     ;
+     ;  1 Hop
+     ;
+     digipeat: all wide7-1 all swap0 wide7
+     digipeat: all wide6-1 all swap0 wide6
+     digipeat: all wide5-1 all swap0 wide5
+     digipeat: all wide4-1 all swap0 wide4
+     digipeat: all wide3-1 all swap0 wide3
+     digipeat: all wide2-1 all swap0 wide2
+     digipeat: all wide1-1 all swap0 wide1
+     ;
+
+     All I did was add a "0" to the swap operation. This number specifies
+     how many digipeater calls should be marked as "used". Default if not
+     specified is 1. But if a 0 is specified no additional digipeaters are
+     marked as "used". This way the final WIDEn call will be left like the
+     Kantronics TNC seems to do. This is however not corresponding with the
+     specification, so this is why it is not the default in the supplied
+     DIGI_NED.INI.
+
+     You could also refuse to propagate anything with WIDE4-N or more by
+     removing all rules for that. Then the DIGI only accepts WIDE1-N, WIDE2-N
+     and WIDE3-N calls.
+
+  Q: How do I update the kepler data for the satellite tracker?
+
+  A: Put raw 2 line element data in digi_ned.tle. I just concatinate all
+     the bulletins I get from KEPLER@AMSAT on the packet BBS in that file,
+     including headers, text etc. Then send the query "?utle" to the
+     digipeater, you have to be owner to do that or type it in at the
+     keyboard if keyboard input in enabled. Upon reception of the "?utle"
+     query DIGI_NED will filter the kepler data from the digi_ned.tle file
+     and update digi_ned.sat if newer data is found. Finally DIGI_NED will
+     read-in this new data and start to use it.
+
+POSTAMBLE
+---------
+  I realize this documentation is far from finished, but at least it is
+  something. I hope to slowly expand and build on it and make something
+  nice of it. I started off in Dutch because it is after all Dutch
+  software. Now I get more and more reactions from elsewhere so now I
+  switched to English. If someone wants to correct spelling mistakes and
+  unclear sentences that's fine with me!
+
+  Kind regards,
+
+  Henk.
+
+APPENDIX
+--------
+
+Here is the original digi_ned.ini file with description and examples of
+how rules can be used.
+
+==========================================================================
+;
+;  Copyright (C) 2000-2009  Henk de Groot - PE1DNN
+;
+;  This program is free software; you can redistribute it and/or modify
+;  it under the terms of the GNU General Public License as published by
+;  the Free Software Foundation; either version 2 of the License, or
+;  (at your option) any later version.
+;
+;  This program is distributed in the hope that it will be useful,
+;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  GNU General Public License for more details.
+;
+;  You should have received a copy of the GNU General Public License
+;  along with this program; if not, write to the Free Software
+;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+;  Please note that the GPL allows you to use the driver, NOT the radio.
+;  In order to use the radio, you need a license from the communications
+;  authority of your country.
+;
+;------------------------------------------------------------------------------
+;
+;  DIGI_NED Digi
+;
+version: 2
+;
+;(Changes marked with ;| in the text, as far as possible. When rules changed
+; the line before and after the changed rule is marked. Search for "|" to
+; quickly find the changes with respect to the previous version)
+;
+;  * Place this file wherever you like, the file will be read by
+;    DIGI_NED at startup. Default location is in the same directory
+;    as the executable, any other location can be used if you supply
+;    the filename at the command line.
+;
+;  * The numbers in the Digipeat lines represent channels on the
+;    AX25_MAC Medium Access Layer TSR or (for LINUX) the AX25 ports
+;    supplied at the command-line.
+;
+;  * Wild cards:
+;
+;    Wildcards may be used to match the incoming callsigns.
+;      *  Matches any 0 or more character(s).
+;      ?  Matches any 1 character.
+;      @  Matches any alpha character.
+;      !  Matches any digit.
+;
+;  DIGI_NED can be setup to match characters in callsigns and aliases. Neat?
+;  Some common ones are WIDE* and AP*. Be careful when doing this as some
+;  callsign fields use things like GPSODN and MIC-E's use random characters
+;  in their "to:" field (for possible destination calls and related Icons
+;  look at Appendix 2 of the APRS Specification).
+;
+;  When '*' is used and additional characters follow after the '*' then
+;  characters in the callsign to check will be skipped until a match is
+;  found again, from that point checking will proceed.
+;
+;  Example:
+;  Using W*E will match WIDE but not W0EXT; after the '*' the code will
+;  look for an 'E' and continue checking from there. In case of matching with
+;  WIDE the '*' will skip the 'I' and 'D' characters and continue comparison
+;  at the 'E'. In case of matching with W0EXT the '*' skip over the '0'
+;  character and also continue comparison at the 'E'. Since 'E' is not
+;  equal to 'EXT' the match will fail for W0EXT. Typical use for this,
+;  and the prime reason why this is implemented, is to enable checking on
+;  SSIDs. You can use '*-4' to match any call with 'SSID' '4'. This is for
+;  digipeating on destination-call SSIDs
+;
+;  * Include the contents of a file:
+;
+;    Used with "send:" and "beacon:" commands. The line following the send
+;    beacon token is the name of a file. "send:" and "beacon:" will send
+;    the current contents of that file at regular intervals. "beacon:"
+;    will also send the contents of a file on a "?APRS?" broadcast or
+;    query.
+;
+;  * Port List:
+;
+;    A comma separated list of port numbers "1,3,5,7" or "All" or "AllBut".
+;    "All" means all ports.
+;    "AllBut" means all ports EXCEPT the port where the frame was heard.
+;    Port numbers refer to the AX25_MAC ports (TNCs),
+;    as shown at startup of AX25_MAC or the order of the ports specified
+;    on the commandline in LINUX..
+;    It is used to specify receive or transmit ports.
+;
+;  * Call List:
+;
+;    Comma separated list of callsigns.
+;
+;    Use commas to separate CALLSIGNS.
+;
+;  * Special call
+;
+;    The call DIGI_CALL in lists will be replaced by the digi_call of the
+;    DIGI_NED digi. This makes it easier to change the call and replicate
+;    a configuration (be careful though!)
+;
+;    The call DIGI_DEST in lists will be replaced by the digi_dest of the
+;    DIGI_NED digi.
+;
+;  * Alter the digipeater list:
+;
+;    Be very careful if you use more than one option to specify
+;    how frames will be repeated between a given pair of switch ports.
+;
+;    Repeat a frame if we are next in the digipeater list.
+;    Use "Digipeat:". Assume we select on a digipeater field of WIDE.
+;
+;    For incoming frame: A>B,C,D*,TRACE,E,F
+;
+;    <none> will do normal digipeating, aliases are replaced by the
+;    DIGI_CALL.
+;    e.g. <none>          gives:  A>B,C,D,DIGI_CALL*,E,F
+;
+;    "Add" will do normal digipeating and add new digipeaters at the end
+;    of the digipeater list
+;    e.g. Add     X,Y     gives:  A>B,C,D,DIGI_CALL*,E,F,X,Y
+;
+;    "Replace" will do normal digipeating and replace the not yet used
+;    digipeaters with a new list of digipeaters.
+;    e.g. Replace DIGI_CALL,X,Y     gives:  A>B,C,D,DIGI_CALL*,X,Y
+;
+;    "New" will replace the whole digipeater list with a new one. The
+;    DIGI_CALL is put first in the list
+;    e.g. New     DIGI_CALL,X,Y     gives:  A>B,DIGI_CALL*,X,Y
+;
+;    "Swap" will replace the digipeater call that was supposed to handle
+;    the packet with a new callsigns. The first callsign will be the 'sender'
+;    (note that with this operation you can avoid callsign substitution
+;    with the DIGI_CALL call)
+;    e.g. Swap    RELAY,X,Y     gives:  A>B,C,D,RELAY*,X,Y,E,F
+;
+;    "Hijack" removes the previous digipeater call from the list and will
+;    then perform the "Swap" operation. If there is no previous digipeater
+;    then it will behave like Swap does (note that with this operation you
+;    can avoid callsign substitution with the DIGI_CALL call)
+;
+;    "Erase" removes all digipeater calls from the digipeater list.
+;
+;    "Keep" will keep the digipeater list unchanged, with a number
+;    you can specify how many digipeaters should be marked as "used"
+;    e.g. Keep    gives:  A>B,C,D,TRACE*,E,F
+;         Keep0   gives:  A>B,C,D*,TRACE,E,F (i.e. unchanged path)
+;
+;    "Shift" will remove all "used" digis except the last used one and
+;    replace the unused digi in the digi list with new calls of the
+;    digipeater list.
+;    e.g. Shift   DIGI_CALL,X,Y  gives:  A>B,D,DIGI_CALL*,X,Y
+;
+;    All the operations can take an optional number to specify how many
+;    digipeater calls shall be marked as "used" by the DIGI_NED. Default
+;    is 1, but you can specify a number from 0 to 8. With 0 no digipeater
+;    call is used up (used for WIDEn-N digipeating), with 8 all digipeater
+;    calls are used up. The value 2 is used for the last hop on TRACEn-N
+;    digipeating, both the DIGI_CALL and the remaining TRACEn shall be
+;    marked as used on this last hop.
+;
+;    For incoming frame: A>B,C,D*,WIDE4-3,E,F
+;    e.g. Swap0    WIDE4-2     gives:  A>B,C,D*,WIDE4-2,E,F
+;
+;    For incoming frame: A>B,C,D*,TRACE4-1,E,F
+;    e.g. Swap2    DIGI_CALL,TRACE4     gives:  A>B,C,D,DIGI_CALL,TRACE4*,E,F
+;
+;    "DigiTo:" is used to repeat a frame if it has a desired TO field. It
+;    is only evaluated when there are no digipeaters at all in the path.
+;    This is useful for picking up packets that usually have no digis on
+;    them at all. Some settings are CQ, ID and BEACON.
+;    Assume we select on a TO field of ID.
+;    For incoming frame: A>ID
+;    Add     X,Y gives:  A>ID,X,Y
+;
+;    There is something special about "DigiTo:". "DigiTo:" supports
+;    destination-call SSID replacement used for intelligent digipeating
+;    on destination-call SSID. For incoming frame: A>ID-3 and replacement
+;    SSID '2' the output will be A>ID-2
+;
+;    "DigiTo:" does not add DIGI_CALL automatically, you have to add this
+;    yourself if you want it. It is possible to use "Add", "Replace", "New",
+;    "Swap", "Hijack", "Erase" and "Keep" operations. If you don't want
+;    the packet to digipeat on SSID set the destination call SSID to 0 to
+;    avoid problems and missinterpretation.
+;
+;    "DigiSsid:" is used to repeat a frame if it has a desired TO field
+;    just like "DigiTo:". It is only evaluated when there are unused
+;    digipeaters in the path. This is useful for implementing SSID
+;    digipeating the correct way. Just like "DigiTo:" this rule can
+;    change the SSID.
+;
+;    "DigiSsid:" does not add DIGI_CALL automatically, you have to add this
+;    yourself if you want it. It is possible to use "Add", "Replace", "New",
+;    "Swap", "Hijack", "Erase" and "Keep" operations. If you don't want
+;    the packet to digipeat on SSID set the destination call SSID to 0 to
+;    avoid problems and miss interpretation.
+;
+;    "DigiSsid:" rules override "Digipeat:" rules, i.e. the "DigiSsid:" rule
+;    has a higher priority.
+;
+;    "DigiEnd:" is used to repeat a frame when we heard it from it's last
+;    digipeater in the path. Assume we select on a digipeater field of
+;    DIGI_CALL.
+;    For incoming frame: A>B,C,D,WIDE,E,DIGI_CALL*
+;    New     X,Y gives:  A>B,DIGI_CALL*,X,Y
+;
+;    "DigiEnd:" is used to "pick up" a packet that died due to lack of
+;    any more path. This is useful when seeing a packet come a couple hops,
+;    such as the beacon of a distant digi, picking it up and ADDING more
+;    path to it and re-sending it out.
+;
+;    With "Block:" you can define FROM callsigns that should not be
+;    repeated. This is for calls like MYCALL, N0CALL etc. or misbehaving
+;    Hams... Optionally you can block calls at specific ports.
+;
+;    "DigiFirst:" works just like "Digipeat:" but only acts on digis that
+;    are first in the digipeater path.
+;
+;    "DigiNext:" works just like "Digipeat:" but only acts on digis that
+;    are not the first in the digipeater path.
+;
+;    "DigiFirst:" and "DigiNext:" are mutually exclusive, a "Digipeat:" rule
+;    can be subsituted by 2 rules using "DigiFirst:" and "DigiNext" and have
+;    a compatible behavior. Usage it to act differently when a call is first
+;    in the list; it has been designed for adding the digipeater call where
+;    the packets enters the APRS system when the user starts his digipeater
+;    list with WIDE4-4 for example:
+;
+;    Old rule:
+;    digipeat: all wide4-4 all swap0 wide4-3
+;
+;    PA0ABC>APRS,WIDE4-4 will be digipeated as PA0ABC>APRS,WIDE4-3
+;
+;    In this case it is not visible where the packet entered the system. Now
+;    replace the digipeat: rule by 2 new rules:
+;
+;    New rules:
+;    digifirst: all wide4-4 all swap DIGI_CALL,wide4-3
+;    diginext: all wide4-4 all swap0 wide4-3
+;
+;    PA0ABC>APRS,WIDE4-4 will now be digipeated as
+;    PA0ABC>APRS,DIGI_CALL*,WIDE4-3
+;
+;    When WIDE4-4 is not the first in the digi list the "Diginext:" rule will
+;    catch it and that one uses the same operation as the old "Digipeat:" rule.
+;
+;  * Note that the node callsign replaces any alias or callsign
+;    used to digipeat, or is added into the digipeater list as
+;    required to allow DIGI to detect potential digipeat loops.
+;    e.g. (WIDE,WIDE,WIDE)
+;
+;    Yes, DIGI_NED does callsign swapping, and won't repeat its own packet.
+;    With the more advanced rules you can make rules without callsign
+;    swapping. To prevent loops, DIGI_NED remembers the CRC of recently
+;    sent packets. The parameter "keep_time" defines how long it takes
+;    until DIGI_NED forgets the CRC. There are special measures of
+;    "short_keep_time" and a filter to remember certain types of data
+;    for a shorter period (i.e. messages which are repeated).
+;
+;  * Preempt commands
+;
+;    "Preempt:" enables you to take packets you hear although there
+;    are unused digipeaters before you in the via-list.
+;
+;    Example. Say you receive a packet with the following path:
+;    A>B,C*,D,E,F
+;
+;    Assume you are digi 'E' but you happen to hear the packet from
+;    'C' directly. Normally the digi would not do anything because
+;    the next digi due is 'D'. If you specify a "preempt:" rule like
+;    this:
+;
+;    preempt: all E
+;
+;    Then packets received from "all" ports will be searched for the
+;    occurrence of unused digi-call "E". When found the received packet
+;    will be changed by removing all unused digipeater calls before the
+;    call you searched. If there are no unused digipeaters before
+;    the call you searched then preempt will do nothing. So with the
+;    example A>B,C*,D,E,F and the above "preempt:" rule, the packet
+;    will be modified to: A>B,C*,E,F
+;
+;    So the next unused digipeater is now 'E'. Further processing of
+;    the packet is done by applying the normal "digipeat:" rules to
+;    the modified packet. So "preempt" is a kind of pre-processing.
+;
+;    So the unused calls are just removed from the digi-list. In some
+;    cases you want to keep a call. This can be achieved by the
+;    "preempt_keep:" rule. All digipeaters in the "preempt_keep"
+;    rules are relocated in the via-list.
+;
+;    Assume you have this:
+;
+;    preempt_keep: D
+;
+;    In this case digipeater D will remain in the via-list after
+;    preempting. So with the example A>B,C*,D,E,F and the previously
+;    described "preempt:" rule, the packet will be modified to:
+;    A>B,C*,E,D,F
+;
+;    So all unused digipeater calls are removed but the ones defined
+;    in "preempt_keep:" are inserted again after the preempted call.
+;    The kept digis will remain in sequence.
+;
+;    Example:
+;
+;    preempt: all H
+;    preempt_keep: D,E,G
+;
+;    Packet A>B,C*,D,E,F,G,H,I will be modified to A>B,C*,H,D,E,G,I
+;
+;    WARNING: Never use generic calls like "RELAY" or "WIDE" in
+;    "preempt_keep:" unless you really want to get yourself into
+;    trouble...
+;
+;    "preempt_keep:" can take wildcards. For example to keep all
+;    Dutch, German and Belgian calls you can specify:
+;
+;    preempt_keep: P*,D*,O*
+;
+;    To prevent that generic calls are also kept there is another
+;    rule called "preempt_never_keep:". With "preempt_never_keep:"
+;    calls are specified that shall never be kept on preempting,
+;    regardless if the call matches with "preempt_keep:". This is
+;    useful to avoid re-insertion of generic calls when wild-cards
+;    are used in the "preempt_keep" rule. Example:
+;
+;    preempt_keep: *
+;    preempt_never_keep: RELAY*,WIDE*,TRACE*
+;
+;    In this example all calls are kept in the via-list when
+;    preempting, except all calls that start with RELAY, WIDE or
+;    TRACE.
+;
+;    One advanced feature is that the preempted call can be exchanged
+;    for a new call during the preempt preprocessing. Example:
+;
+;    preempt: 1 E Z
+;
+;    Then packets received from port "1" ports will be searched for the
+;    occurrence of unused digi-call "E". When found the received packet
+;    will be changed by removing all unused digipeater calls before the
+;    call you searched. If there are no unused digipeaters before
+;    the call you searched then preempt will do nothing. The digipeater
+;    call E will be replaced by Z. So with the example A>B,C*,D,E,F and
+;    the above "preempt:" rule, the packet will be modified to: A>B,C*,Z,F
+;
+;    One of the tricks you can do with this is to have a rule like:
+;
+;    preempt: all RELAY IGNORE
+;
+;    Inbound packets will be searched for RELAY. Since preempting is only
+;    done when there are unused digipeaters before the searched call, this
+;    means that this preempting only takes place when RELAY is not the
+;    first digipeater! Example:
+;
+;    Inbound packet: A>B,WIDE,RELAY,WIDE3-3
+;
+;    is preempted to: A>B,IGNORE,WIDE3-3
+;
+;    Now make sure there is no "digipeat:" rule for a digipeater called
+;    "IGNORE" and none of the digipeating rules will match. Result: the
+;    frame is not digipeated...
+;
+;  * Send and Beacon command
+;
+;    These are where DIGI_NED gets the position beacon text. You can have
+;    multi path beacons if you want. The format for the setting reads as
+;    follows:
+;
+;    send: 20 all DIGI_DEST,WIDE,TRACE4-4
+;    c:\data\send_data
+;
+;    beacon: 20 all DIGI_DEST,WIDE,TRACE4-4
+;    c:\data\send_data
+;
+;    Send beacons with an interval of 20 minutes to all ports
+;    with DIGI_CALL (that's the call of this DIGI_NED) to
+;    the first call in the path given in the send command. The next
+;    calls in the path of the send command are the digis, in this
+;    case WIDE,TRACE4-4. The next line is a file from which the
+;    data to be send is read. The file will be read every time
+;    "send:" or "beacon:" starts the transmission.
+;
+;    It is also possible to send beacons at a specific time when
+;    prefixing the interval with '@' (at). For example:
+;
+;    beacon: @20 all DIGI_DEST,WIDE,TRACE4-4
+;    c:\data\send_data
+;
+;    Sends the same information as above, but exactly 20 minutes past the
+;    hour, every hour. The time can be between 0 and 59; when using @60 it
+;    will send exactly on the hour but skip every other hour. So if you
+;    want to send every other hour at 20 minutes past the hour, use @80
+;
+;    Some conversion is performed on the file. After reading all
+;    <CR> characters will be removed. The result of this is that
+;    only <LF> characters remain as line terminators. All the
+;    <LF> characters are changed to <CR> characters which is the
+;    line termination used for packet-radio use. Note that only
+;    up to 256 characters are read from the beacon-file, this is
+;    as much as will fit in an AX.25 frame. If the text is not
+;    terminated by a <CR> the DIGI_NED will add it.
+;
+;    When the file does not have any path then digi_ned will look for it
+;    in the same directory as where the executable is.
+;
+;    DIGI_CALL>DIGI_DEST,WIDE,TRACE4-4:contents of named file
+;
+;    The difference between "send:" and "beacon:" is that the "beacon:"
+;    rules are also triggered when an "?APRS?" broadcast or query is
+;    received. The "send:" rules will not be executed in that case.
+;
+;  * Telemetry command
+;
+;    This commands starts transmission of telemetry data by DIGI_NED
+;    which can be used to transfer binary data read from an LPT port.
+;    You can connect your own hardware to the LPT port to give meaning
+;    to the signals.
+;
+;    telemetry: 20 all off,off,off,off,off,lpt2 DIGI_DEST,WIDE,TRACE4-4
+;
+;    This means: send telemetry data with an interval of 20 minutes to
+;    all ports with DIGI_CALL (that's the call of this DIGI_NED) to the
+;    first call in the path given in the telemetry command. The other
+;    calls in the path of the telemetry command are the digis, in this
+;    case WIDE,TRACE4-4.
+;
+;    Note that an interval of 0 will not cause any transmissions. This
+;    can be used to specify ports with the "telemetry:" for use with
+;    the "?tlm" query but without the automatic transmissions.
+;
+;    It is also possible to send telemetry data at a specific time when
+;    prefixing the interval with '@' (at). For example:
+;
+;    telemetry: @20 all off,off,off,off,off,lpt2 DIGI_DEST,WIDE,TRACE4-4
+;
+;    Sends the same information as above, but exactly 20 minutes past the
+;    hour, every hour. The time can be between 0 and 59; when using @60 it
+;    will send exactly on the hour but skip every other hour. So if you
+;    want to send every other hour at 20 minutes past the hour, use @80
+;
+;    The telemetry data to send is read from the control data address of
+;    the given ports. Up to 6 sources can be specified, the first 5 are
+;    analog and the 6th port is a digital port.
+;
+;    In the command as shown the analog inputs are not connected to a
+;    port. "off" is a dummy port, used as placeholder.
+;
+;    The source for the digital port is in the above example the parallel
+;    port. The address of the used LPT port is read from DOS in case DOS
+;    is used, in Linux LPT1 (/dev/lp0) is mapped to base address 0x3BC,
+;    LPT2 (/dev/lp1) to 0x378 and LPT3 (/dev/lp2) to 0x278. This
+;    corresponds with the order used in the "lp" driver in Linux (at
+;    least with 2.0.36 kernel). Note that for example LPT1 in DOS may
+;    not be the same as port 0x3BC in Linux. DOS assigns the ports in
+;    a different order depending on the available hardware.
+;
+;    The telemetry data is transmitted as an APRS type 'T' identifier.
+;    The sequence number starts at 000 and is increased each transmission.
+;    When the number 999 is reached the counter restarts at 000. The LPT
+;    port data will be in the "Digital Value" part. The dummy "off" ports
+;    will give 999 as value in the analog part or all '1' when used in the
+;    binary value. You can change the telemetry command to this:
+;
+;    telemetry: 20 all lpt2 DIGI_DEST,WIDE,TRACE4-4
+;
+;    In this case the value read from lpt2 is put into the first analog
+;    field. The telemetry command will not send more data then needed.
+;
+;    In the future more telemetry ports will be added, currently only the
+;    dummy 'off' and the 'lpt' ports are supported.
+;
+;    For 'lpt' 5 bits input can be used. The value is read from the 'lpt'
+;    status port as input. The inputs are "Busy" = D7, "Ack" = D6,
+;    "Paper Out" = D5, "Select In" = D4 and "Error" = D3. The binary value
+;    in the telemetry data is send out with high byte first (so the first
+;    binary value bit is "Busy"). Logical high is a '1' in the telemetry
+;    message.
+;
+;    For 'lpt' also an 8-bit input can be used. For multiplexing, the
+;    'strobe' signal is used. When the 'strobe' signal on the connector
+;    is logical low then the lower nibble of the 8 bytes is read from
+;    the status port (inputs "Busy" = D3, "Ack" = D2, "Paper Out" = D1,
+;    "Select In" = D0). When the 'strobe' signal on the connector is
+;    logical high then the higher nibble of the 8 bytes is read from
+;    the status port (inputs "Busy" = D7, "Ack" = D6, "Paper Out" = D5,
+;    "Select In" = D4). There is at least 1ms time between changing the
+;    strobe signal on the port and actually reading the nibble from the
+;    port.
+;
+;    If you want to use 8 bit input use "lpt<x>_8",for example 8 bit input
+;    from "lpt2":
+;
+;    telemetry: 20 all off,off,off,off,off,lpt2_8 DIGI_DEST,WIDE,TRACE4-4
+;
+;    DIGI_NED contains support for multiplexing via the lpt port. When
+;    reading the port the port number (which is 0 based and runs from 0
+;    to 5) is put on bits 1, 2 and 3 of the control port. These bits
+;    correspond with the "Auto Linefeed", "Initialize Printer" and
+;    "Select Printer" outputs of the LPT port. The association of port
+;    numbers put on the 3 bit address lines of the control port can be
+;    overruled. For example to completely reverse the numbers, so the first
+;    value is read from address 5, the next from 4 etc, you can specify:
+;
+;    telemetry: 20 all lpt2_8/5,lpt2_8/4,lpt2_8/3,lpt2_8/2,lpt2_8/1,lpt2_8/0...
+;
+;    (path truncated to be able to fit the example on 1 line...)
+;    The 3 bit address on the control port can take values 0..7.
+;
+;  * Automessage command
+;
+;    This command internally sends a query to DIGI_NED. You can use this
+;    to port regular bulletins automatically, have maintenance to
+;    update the satelite database and since queries can also start up
+;    programs you can use it to automate maintenance.
+;
+;    automessage: 30 1,2
+;    ?bln
+;
+;    This sends the query "?bln" internally to DIGI_NED two times, once
+;    originating from port 1 and once originating from port 2.
+;
+;    DIGI_NED will handle this the same way as if the message entered from
+;    one of the ports. There is one exception, direct replies to the
+;    originator appear on screen (and only once, even if you have more ports).
+;
+;    Replies to others and bulletins are transmitted the normal way, as do
+;    objects.
+;
+;    One use could be to keep the satellite tracking running, like this
+;
+;    automessage: 100 all
+;    ?trk no44
+;
+;    Every 100 minutes the tracking is triggered, this will keep it running
+;
+;    Another great use it to run an external program once in a while, for
+;    example:
+;
+;    automessage: 1440 all
+;    ?sysop
+;
+;    This will once a day trigger the response programmed under 'sysop' in
+;    the sample 'digi_ned.mes' file. This is programmed like this:
+;
+;        ?sysop
+;        !!echo Ok, you are Sysop > tmpxyz
+;        >tmpxyz
+;        !rm tmpxyz
+;
+;    So it runs the program 'echo' to put a text into a file, then it
+;    reads the file and sends the contents to the originator of the query
+;    (so it ends up on the screen). Then the 'rm' program is run to remove
+;    the created temporary file.
+;
+;    The number 30 in the first example rule above is the interval, every
+;    30 minutes. Like 'send:', 'beacon:' and 'telemetry:' above adding an '@'
+;    to the interval specifies an absolute time, i.e. every 30 minutes past
+;    the hour in this case. Example:
+;
+;    automessage: @0 1,2
+;    ?bln
+;    automessage: @30 1,2
+;    ?bln
+;
+;    This automatically executes the 'bln' query at every full and half hour.
+;
+;  * Serial command
+;
+;    With these rules DIGI_NED can send data from a GPS, Ultimeter or other
+;    device connected via a serial line. You can sent multiple sentences if
+;    you want. The format for the setting reads as follows:
+;
+;    serial: 10 all com3 4800 GPSODN,WIDE,WIDE3-3
+;    $GPRMC $GPGGA
+;
+;    If the wanted type of sentence is not specified (empty line following
+;    the "serial:" rule) all the data on the serial input is accepted (if
+;    it doesn't fail the checksum). Note that DIGI_NED will only output the
+;    most recently read complete line in this case.
+;
+;    In the example serial data is send with an interval of 10 minutes to
+;    all ports. The data is read from COM3 (under Linux /dev/ttyS2) at 4800
+;    baud in this case. Supported baudrates are 1200, 2400, 4800 and 9600
+;    baud. The serial line uses hardware-flowcontrol on send and receive.
+;
+;    In DOS COM1 to COM4 can be used with the following mapping:
+;
+;    COM1 = IOA=0x3f8, IRQ=4
+;    COM2 = IOA=0x2f8, IRQ=3
+;    COM3 = IOA=0x3e8, IRQ=4
+;    COM4 = IOA=0x2e8, IRQ=3
+;
+;    As usual the DOS restriction not to have active traffic on 2 COM ports
+;    using the same IRQ applies. The IOA and IRQ are fixed. I might add it
+;    if there is demand to have this configurable. In DOS only 1 serial port
+;    can be assigned at a time due to limitations in the used driver code.
+;
+;    In Linux COM1 to COM9 can be used with the following mapping:
+;
+;    COM1 uses /dev/ttyS0
+;    COM2 uses /dev/ttyS1
+;    COM3 uses /dev/ttyS2
+;    COM4 uses /dev/ttyS3
+;    ...
+;    COM9 uses /dev/ttyS8
+;
+;    If a checksum is present in the DATA, DIGI_NED will validate the sentence
+;    and ignore corrupted sentences. When no checksum is present data is
+;    used as is. The data is transmitted with the call DIGI_CALL (that's
+;    the call of this DIGI_NED) to the first call in the path given in
+;    the serial command. The next calls in the path of the serial command
+;    are the digis, in this case WIDE, WIDE3-3. The next line in the .ini
+;    file specifies the sentences to be picked up from the serial line for
+;    transmission. Multiple sentence types can be specified. All sentences
+;    are transmitted at the same time.
+;
+;    DIGI_CALL>GPSODN,WIDE,WIDE3-3:$GPRMC<RMC sentence follows>
+;    DIGI_CALL>GPSODN,WIDE,WIDE3-3:$GPGGA<GGA sentence follows>
+;
+;    Like 'send:', 'beacon:', 'telemetry:' and 'automessage:" above adding
+;    an '@' to the interval specifies an absolute time.
+;
+;  * WX support
+;
+;    This functionality is used to make all kinds of packets based on
+;    telemetry information. Primary reason for creating this function is
+;    to build a weather station (with home-made sensors!). All data is
+;    retrieved from an LPT port. It uses the same type of multiplexing
+;    as the telemetry ports.
+;
+;    The way it works is with variables (a symbol a..z or A..Z etc), which
+;    are associated with a port. They are created with a "wx_var:" rule.
+;    Besides its association with a telemetry port each variable has
+;    specific properties. First of all the kind of variable. It can use
+;    the raw value but also a maximum or minimum value over an amount of
+;    time. It can also sum up differences between measurements to support
+;    rain-meters etc. The period is selectable in minutes, up to 32676
+;    minutes timespan.
+;
+;    Secondly the variable has a set of equation parameters. Using the
+;    formula "a (x*x) + b x + c" where "x" is the value read from the
+;    telemetry port the variable has constants for "a", "b" and "c" to
+;    convert the read value from the port to the value of the variable.
+;    Note that the fraction of the resulting floating point value is
+;    truncated when conversion to an integer is done. When you want
+;    rounding make sure to handle that in the formula by adding 0.5 to
+;    the value of "c" of the equation.
+;
+;    The variables created this way can be embedded in a string which is
+;    sent with a new rule called "wx:". You can use different types of
+;    formatting to create exactly the output string you want. Say your
+;    variable is "v" and has the value 123. The following formatting
+;    instructions yield the following output:
+;
+;    "%v"   -> formatted to "123"  (takes as much space as needed)
+;    "%4v"  -> formatted to " 123" (always 4 characters)
+;    "%-4v" -> formatted to "123 " (always 4 characters, left aligned)
+;    "%04v" -> formatted to "0123" (always 4 characters, zero padding)
+;    "%02v" -> formatted to "23"   (always 2 characters, truncates the value)
+;    "the value of v=%v" -> "the value of v=123"
+;
+;    There is also a second kind of variables. These do not read data from
+;    a telemetry port but are used to display the current date and time.
+;    There are a number of formats available, but by truncating the
+;    variables during formatting you can create other formats too. Both
+;    zulu and local time are supported, note that these only generate
+;    correct values when either the timezone information (TZ) is set
+;    correctly or the digi_utc_offset: is filled in (DOS only)
+;
+;    The following kind of variables can be created using the "wx_var:"
+;    rules:
+;
+;    kinds: val     -> direct value
+;           max     -> max since midnight
+;           min     -> min since midnight
+;           sum     -> sum since midnight
+;           avg     -> pseudo average since midnight
+;           max60   -> max over past 60 minutes (1 hour)
+;           min60   -> min over past 60 minutes (1 hour)
+;           sum60   -> sum over past 60 minutes (1 hour)
+;           avg60   -> pseudo average over 60 minutes (1 hour)
+;           max120  -> max over past 120 minutes (2 hours)
+;           min120  -> min over past 120 minutes (2 hours)
+;           sum1440 -> sum over past 1440 minutes (24 hours)
+;           avg1440 -> pseudo average over past 1440 minutes (24 hours)
+;           dhm     -> day, hour, minute value
+;           hms     -> hour, minute, second value
+;           ymd     -> year, month, day value
+;           ydm     -> year, day, month value
+;           dmy     -> day, month, year value
+;           mdy     -> month, day, year value
+;           mdh     -> month, day, hour value
+;           mdhm    -> month, day, hour, minute value
+;
+;    When you want to use this functionality some planning is needed. You
+;    have to know which values are present on which ports. Then you need
+;    to find the equations to calculate the values as they should appear
+;    on the output. It is also good to plan which variables to use.
+;    Variables van be "a-z", "A-Z" (case sensitive!) and symbols like "#",
+;    "$" etc. If you want to include a % sign in the output use \%, the
+;    "\" is an escape character. To include a backslash use "\\". Planning
+;    of variables is needed to avoid using the same variable twice. If you
+;    define a variable twice, only the last one will be evaluated.
+;
+;    To illustrate how it works I created a configuration example below
+;    with several equations. The final string is a positionless WX string
+;    as described in the APRS specification (You need a copy of this to
+;    create a correctly formatted string for WX use). Due to the
+;    flexibility, use of this WX mechanism is not restricted to weather
+;    stations. Use your imagination, this can couple any data from an LPT
+;    port to a beacon transmission.
+;
+;    Note that the sample below in this file is commented-out, it depends
+;    on the hardware you connect how to set it up. It is just to show-off
+;    the rules used for this functionality.
+;
+;    Note that beacons created with the "wx:" rule are transmitted when
+;    the query "?WX?" is received, both with a message to the digi and
+;    with a WX broadcast reception.
+;
+;    Like 'send:', 'beacon:', 'telemetry:', 'automessage:' and 'serial:'
+;    above adding '@' to the interval specifies an absolute time.
+;
+;  * Messages
+;
+;    DIGI_NED can send a number of responses to queries. Some of
+;    those responses are defined in a text-file. The file is defined
+;    with:
+;
+;    message_file: digi_ned.mes
+;
+;    When the file does not have any path then digi_ned will look for it
+;    in the same directory as where the executable is.
+;
+;    DIGI_NED will remember the query from a station so that DIGI_NED
+;    does answer only once on query. If the acknowledge of the query
+;    message does not reach the originator then the originator retransmits
+;    his message. This retransmission should not be auto-answered.
+;
+;    message_keep_time: 900
+;
+;    This remembers received messages for 900 seconds - 15 minutes
+;
+;    The "message_path:" defines the route that reply-messages should
+;    use.
+;
+;    message_path: all TRACE,WIDE
+;
+;    In the above example the auto-response will be send to all ports
+;    using TRACE,WIDE as digipeater path.
+;
+;    It is allowed to have multiple "message_path:" definitions for one
+;    port. Each "message_path:" definition causes an transmission to
+;    the ports, each having the defined path. Definition of
+;
+;    message_path: 1 TRACE,WIDE
+;    message_path: 1 PI1APA
+;
+;    Causes 2 transmissions to port 1 for each reply of DIGI_NED, on
+;    with the digipeater path "TRACE,WIDE" and one using "PI1APA".
+;    As with everything in the DIGI_NED configuration the user is
+;    responsible for proper usage of this feature.
+;
+;    A related parameter is "max_msg_hops:". This is the maximum
+;    number of "used" digipeaters that may appear in the received
+;    frame containing the query from the originator. When more
+;    digipeaters are marked as "used" the query will be ignored.
+;
+;    Answering a query that arrived via more hops would be useless
+;    since the answer will not get back to the originator according
+;    to the message_path settings and would only cause QRM. This
+;    "hop" limit does not take intelligent digipeaters into account,
+;    but at least stops some useless traffic.
+;
+;    When not defined "max_msg_hops:" will be 8, which means no limit
+;    because 8 is the maximum number of digipeaters that will fit into
+;    an AX.25 frame. The "max_msg_hops:" will, when used, normally
+;    correspond with the number of hops defined in the longest
+;    "message_path:" setting.
+;
+;  * DX function
+;
+;    With the DX function DIGI_NED can generate DX messages. To be able
+;    to measure the distance, the digi position must be set. This is done
+;    with Digi_Pos:, example
+;    digi_pos: 5213.61N 00600.00E
+;
+;    Alternatively DIGI_NED can read the position specified in an APRS
+;    beacon text so that you have only one place to specify the digipeater
+;    position, example:
+;    digi_pos_file: digibcon.ini
+;
+;    The method with reading the beacon-file is now default.
+;
+;    You can query for DX stations on a port. It gives the best and second
+;    best station over a period of time. This period is determined by
+;    Dx_Times: and is specified in hours. 'all' can be used to get the
+;    best DX of all entries in the Mheard list. More times can be specified.
+;    example:
+;    dx_times: all,24,1
+;
+;    Distances are default in 'km' but can be changed with 'Dx_Metric:'
+;    to 'mi' for statue miles or 'nm' for nautical miles. Example:
+;    dx_metric: km
+;
+;    DX bulletins are generated when a new best DX is received. There
+;    is a minimum and maximum distance, below the minimun a DX bulletin
+;    is never send and above the maximum the range is considered to be
+;    bogus. This maximum range is optional. The time over which this best
+;    DX is determined is set in hours.
+;
+;    'Dx_Level:' is used for this and can be defined per port. You can have
+;    more Dx_Level: commands for one port if you want. Use 'all' to define
+;    the level for all ports. Example (for all ports with 25km/mi/nm minimum
+;    limit [see dx_metric] and 2000 km/mi/nm maximum limit and 'looking back'
+;    1 hour):
+;    dx_level: all 25-2000 1
+;
+;    With Dx_Path: the destination address and path is determined for
+;    the Dx bulletins. Example:
+;    dx_path: all DX,TRACE,WIDE
+;
+;    With Dx_Portname: you can give a port a more descriptive name the
+;    default name is "Portx" where 'x' is the port number. Note that the
+;    TH-D7 will only display the first 5 characters of the name. Maximum
+;    length transmitted are 10 characters - this just fills up a complete
+;    80 character line. Example:
+;    dx_portname: 1 2 mtr
+;
+;------------------------------------------------------------------------------
+;
+;  Start of the rules, start with the beacons.
+;
+;  Send our position as beacon, this transmission also takes place when an
+;  "?APRS?" broadcast or query is received.
+;
+beacon: 20 all DIGI_DEST,WIDE,WIDE3-3
+digibcon.ini
+;
+;  Send our station identification every 5 minutes. Note that this may be
+;  required to fulfil your license requirements. In this case I did not
+;  add any digipeaters since this is only a local identification.
+;  Upon reception of an "?APRS?" broadcast or query this beacon is not
+;  transmitted. If that is needed change the "send:" rule into a "beacon:"
+;  rule.
+;
+send: 5 all ID
+digi_id.ini
+;
+;------------------------------------------------------------------------------
+;
+;  Serial line handling
+;
+;  Since there is no default the examples are commented out
+;  COM1 is in Linux /dev/ttyS0, COM2 is /dev/ttyS1 etc.
+;
+;  Tip: to accept all the data on the serial input leave the line following
+;       the "serial:" rule empty. In that case all the data on the serial
+;       input is accepted (if it doesn't fail the checksum). DIGI_NED will
+;       only output the most recently read complete line in that case.
+;
+;serial: 10 all com3 4800 GPSODN,WIDE,WIDE3-3
+;$GPRMC $GPGGA
+;
+;------------------------------------------------------------------------------
+;
+;  Telemetry transmission. Telemetry data to send is read from a LPT port.
+;
+;  NOTE: These lines are commented out since there is no sensible default
+;  You have to adapt the beacon telemetry text and connect the hardware you
+;  want to control. Please read the TELEMETRY section in the APRS
+;  specification (to be found on "http://www.tapr.org"). If you do not
+;  understand this, please leave all the telemetry stuff commented!!!
+;
+;  In this example the data from lpt2, using address 1 on the control line
+;  outputs, is put into the analog A1 channel and in the binary channels
+;  (B1..B8) (using the default port address 5).
+;
+;telemetry: 15 all lpt2/1,off,off,off,off,lpt2_8 DIGI_DEST
+;
+;  Send telemetry specification at regular intervals
+;
+;  This information is formatted as a message to the digi itself (the
+;  digi sends a message with as destination the digi itself). These
+;  messages specify what telemetry is transmitted. Care has to be taken
+;  with the layout. Fields are limited in length. The information how
+;  to use this can be found in the APRS protocol specification in the
+;  telemetry chapter.
+;
+;  The information in "digi_tlm.ini" defines the names of all parameters,
+;  the units in which they are expressed, equations to be used on the
+;  analog values and a bit-pattern to define when a digital bit should be
+;  regarded as 'active' or 'on'. If you don't understand this please read
+;  the APRS specification. It's no use to duplicate the information here
+;  and it will not make the topic more simple.
+;
+;beacon: 30 all DIGI_DEST
+;digi_tlm.ini
+;
+;  We use the beacon file also as our own source of information to
+;  answer on 'tlm' queries. This is needed to format the responses.
+;
+;tele_info: digi_tlm.ini
+;
+;------------------------------------------------------------------------------
+;
+;  Automessage, automatically start query to DIGI_NED itself
+;
+;  Automessage automatically sends a message to DIGI_NED itself, so
+;  it can regulary do actions like posting an object, keep the tracker
+;  running for a specific satellite or, since messages can startup a program,
+;  run a program at regular intervals. In the example below DIGI_NED keeps
+;  tracking satellite NO44 (APRS satellite PCSat). Every 100 minutes the
+;  tracking is restarted so it will never expire.
+;
+;automessage: 100 all
+;?trk no44
+;
+;------------------------------------------------------------------------------
+;
+;  Commands to execute directly after the .ini file is processed. These
+;  command are sent through the message parser as if they were sent over
+;  the air. The purpose is to initialise output ports used for remote control
+;  to a certain state.
+;
+;command: !out 2 10101011
+;
+;  It can also be used to make a port read-only at startup, for example
+;  port 4:
+;
+;command: !ptt xxx0xxxx
+;
+;------------------------------------------------------------------------------
+;
+;  Digipeat frames with these digipeater calls.
+;
+;  Digipeat data to this call from any port one back out onto all ports.
+;  Don't add anything (except mycall of course).
+;
+;  XXXX XXXX = whatever comes next after this
+;
+;------------------------------------------------------------------------------
+;all ==> PE1XXX-1>APXXX PE1YYY* DIGI_CALL XXXX XXXX
+;all <== PE1XXX-1>APXXX PE1YYY DIGI_CALL* XXXX XXXX
+;
+digipeat: all DIGI_CALL all
+;------------------------------------------------------------------------------
+;all ==> PE1XXX-1>APXXX PE1YYY* RELAY XXXX XXXX
+;all <== PE1XXX-1>APXXX PE1YYY* DIGI_CALL* XXXX XXXX
+;
+;  The same for trace and wide, shows that you can specify more
+;  condensed rules. All rules are expanded in memory, so it
+;  does not save memory at run-time.
+;
+digipeat: all trace,wide all
+;
+;  relay is only accepted if it is the first call in the path
+;
+digifirst: all relay all
+;
+;------------------------------------------------------------------------------
+;  Digipeat data to this call only to the port where it came from.
+;
+;1 ==> PE1XXX-1>APXXX PE1YYY* LOCAL XXXX XXXX
+;1 <== PE1XXX-1>APXXX PE1YYY* DIGI_CALL* XXXX XXXX
+;
+digipeat: 1 local 1
+;------------------------------------------------------------------------------
+;2 ==> PE1XXX-1>APXXX PE1YYY* LOCAL XXXX XXXX
+;2 <== PE1XXX-1>APXXX PE1YYY* DIGI_CALL* XXXX XXXX
+;
+digipeat: 2 local 2
+;------------------------------------------------------------------------------
+;  Digipeat data to this call from any port one back out onto all ports
+;  except the one it came from.
+;
+;all ==> PE1XXX-1>APXXX PE1YYY* WORM XXXX XXXX
+;all(except in-port) <== PE1XXX-1>APXXX PE1YYY* DIGI_CALL* XXXX XXXX
+;
+digipeat: all worm allbut
+;------------------------------------------------------------------------------
+;
+;  Intelligent digipeating rules
+;
+;  Handling of WIDEn-N
+;  -------------------
+;
+;  General rule: calls of digipeaters shall not appear in the digipeater list.
+;                last hop is WIDEn-1, then WIDEn shall be marked as "used"
+;
+;  Example: packet with WIDE3-3 should progress as follows
+;
+;  -- 1st hop on WIDE3-3 --
+;  all ==> PE1XXX-1>APXXX PE1YYY* WIDE3-3 XXXX XXXX
+;  all <== PE1XXX-1>APXXX PE1YYY* WIDE3-2 XXXX XXXX
+;
+;  Rule: digipeat: all wide3-3 all swap0 wide3-2
+;
+;  -- 2nd hop on WIDE3-2 by "DIGI_2" --
+;  all ==> PE1XXX-1>APXXX PE1YYY* WIDE3-2 XXXX XXXX
+;  all <== PE1XXX-1>APXXX PE1YYY* WIDE3-1 XXXX XXXX
+;
+;  Rule: digipeat: all wide3-2 all swap0 wide3-1
+;
+;  -- 3rd hop on WIDE3-1 by "DIGI_3" --
+;  all ==> PE1XXX-1>APXXX PE1YYY* WIDE3-1 XXXX XXXX
+;  all <== PE1XXX-1>APXXX PE1YYY WIDE3* XXXX XXXX
+;  (Hijack removed the call DIGI_3 from the list)
+;
+;  Rule: digipeat: all wide3-1 all swap wide3
+;
+;------------------------------------------------------------------------------
+;
+;  7 Hops
+;
+digifirst: all wide7-7 all swap DIGI_CALL,wide7-6
+diginext: all wide7-7 all swap0 wide7-6
+;
+;------------------------------------------------------------------------------
+;
+;  6 Hops
+;
+digipeat: all wide7-6 all swap0 wide7-5
+digifirst: all wide6-6 all swap DIGI_CALL,wide6-5
+diginext: all wide6-6 all swap0 wide6-5
+;
+;------------------------------------------------------------------------------
+;
+;  5 Hops
+;
+digipeat: all wide7-5 all swap0 wide7-4
+digipeat: all wide6-5 all swap0 wide6-4
+digifirst: all wide5-5 all swap DIGI_CALL,wide5-4
+diginext: all wide5-5 all swap0 wide5-4
+;
+;------------------------------------------------------------------------------
+;
+;  4 Hops
+;
+digipeat: all wide7-4 all swap0 wide7-3
+digipeat: all wide6-4 all swap0 wide6-3
+digipeat: all wide5-4 all swap0 wide5-3
+digifirst: all wide4-4 all swap DIGI_CALL,wide4-3
+diginext: all wide4-4 all swap0 wide4-3
+;
+;------------------------------------------------------------------------------
+;
+;  3 Hops
+;
+digipeat: all wide7-3 all swap0 wide7-2
+digipeat: all wide6-3 all swap0 wide6-2
+digipeat: all wide5-3 all swap0 wide5-2
+digipeat: all wide4-3 all swap0 wide4-2
+digifirst: all wide3-3 all swap DIGI_CALL,wide3-2
+diginext: all wide3-3 all swap0 wide3-2
+;
+;------------------------------------------------------------------------------
+;
+;  2 Hops
+;
+digipeat: all wide7-2 all swap0 wide7-1
+digipeat: all wide6-2 all swap0 wide6-1
+digipeat: all wide5-2 all swap0 wide5-1
+digipeat: all wide4-2 all swap0 wide4-1
+digipeat: all wide3-2 all swap0 wide3-1
+digifirst: all wide2-2 all swap DIGI_CALL,wide2-1
+diginext: all wide2-2 all swap0 wide2-1
+;
+;------------------------------------------------------------------------------
+;
+;  1 Hop
+;
+digipeat: all wide7-1 all swap wide7
+digipeat: all wide6-1 all swap wide6
+digipeat: all wide5-1 all swap wide5
+digipeat: all wide4-1 all swap wide4
+digipeat: all wide3-1 all swap wide3
+digipeat: all wide2-1 all swap wide2
+digifirst: all wide1-1 all swap2 DIGI_CALL,wide1
+diginext: all wide1-1 all swap wide1
+;
+;------------------------------------------------------------------------------
+;
+;  0 Hops, these are not repeated (commented out)!
+;
+;digipeat: all wide7 all swap DIGI_CALL
+;digipeat: all wide6 all swap DIGI_CALL
+;digipeat: all wide5 all swap DIGI_CALL
+;digipeat: all wide4 all swap DIGI_CALL
+;digipeat: all wide3 all swap DIGI_CALL
+;digipeat: all wide2 all swap DIGI_CALL
+;digipeat: all wide1 all swap DIGI_CALL
+;digipeat: all wide0 all swap DIGI_CALL
+;
+;------------------------------------------------------------------------------
+;
+;  Strange WIDE formats
+;
+;  If WIDE-N is the first call in the VIA list then add our digipeater's own
+;  call to show where the packet entered the APRS system
+;
+digifirst: all wide-7 all swap DIGI_CALL,wide-6
+digifirst: all wide-6 all swap DIGI_CALL,wide-5
+digifirst: all wide-5 all swap DIGI_CALL,wide-4
+digifirst: all wide-4 all swap DIGI_CALL,wide-3
+digifirst: all wide-3 all swap DIGI_CALL,wide-2
+digifirst: all wide-2 all swap DIGI_CALL,wide-1
+digifirst: all wide-1 all swap2 DIGI_CALL,wide
+;
+;  If not the first call in the VIA list digipeat as WIDEn-N
+;
+diginext: all wide-7 all swap0 wide-6
+diginext: all wide-6 all swap0 wide-5
+diginext: all wide-5 all swap0 wide-4
+diginext: all wide-4 all swap0 wide-3
+diginext: all wide-3 all swap0 wide-2
+diginext: all wide-2 all swap0 wide-1
+diginext: all wide-1 all swap wide
+;
+;------------------------------------------------------------------------------
+;
+;  Handling of TRACEn-N
+;  ---------------------
+;
+;  General rule: calls of previous intelligent digipeaters stay in the
+;  digipeater list (note that on overflow calls are dropped!).
+;
+;  Example: packet with TRACE3-3 should progress as follows
+;
+;  -- 1st hop on TRACE3-3 --
+;  all ==> PE1XXX-1>APXXX PE1YYY* TRACE3-3 XXXX XXXX
+;  all <== PE1XXX-1>APXXX PE1YYY DIGI_CALL* TRACE3-2 XXXX XXXX
+;
+;  Rule: digipeat: all trace3-3 all swap DIGI_CALL,trace3-2
+;
+;  -- 2nd hop on TRACE3-2 by "DIGI_2" --
+;  all ==> PE1XXX-1>APXXX PE1YYY DIGI_CALL* TRACE3-2 XXXX XXXX
+;  all <== PE1XXX-1>APXXX PE1YYY DIGI_CALL DIGI_2* TRACE3-1 XXXX XXXX
+;
+;  Rule: digipeat: all trace3-2 all swap DIGI_2,trace3-1
+;
+;  -- 3rd hop on TRACE3-1 by "DIGI_3" --
+;  all ==> PE1XXX-1>APXXX PE1YYY DIGI_CALL DIGI_2* TRACE3-1 XXXX XXXX
+;  all <== PE1XXX-1>APXXX PE1YYY DIGI_CALL DIGI_2 DIGI_3* TRACE3* XXXX XXXX
+;
+;  Rule: digipeat: all trace3-1 all swap2 DIGI_3,trace3
+;
+;------------------------------------------------------------------------------
+;
+;  7 Hops
+;
+digipeat: all trace7-7 all swap DIGI_CALL,trace7-6
+;
+;------------------------------------------------------------------------------
+;
+;  6 Hops
+;
+digipeat: all trace7-6 all swap DIGI_CALL,trace7-5
+digipeat: all trace6-6 all swap DIGI_CALL,trace6-5
+;
+;------------------------------------------------------------------------------
+;
+;  5 Hops
+;
+digipeat: all trace7-5 all swap DIGI_CALL,trace7-4
+digipeat: all trace6-5 all swap DIGI_CALL,trace6-4
+digipeat: all trace5-5 all swap DIGI_CALL,trace5-4
+;
+;------------------------------------------------------------------------------
+;
+;  4 Hops
+;
+digipeat: all trace7-4 all swap DIGI_CALL,trace7-3
+digipeat: all trace6-4 all swap DIGI_CALL,trace6-3
+digipeat: all trace5-4 all swap DIGI_CALL,trace5-3
+digipeat: all trace4-4 all swap DIGI_CALL,trace4-3
+;
+;------------------------------------------------------------------------------
+;
+;  3 Hops
+;
+digipeat: all trace7-3 all swap DIGI_CALL,trace7-2
+digipeat: all trace6-3 all swap DIGI_CALL,trace6-2
+digipeat: all trace5-3 all swap DIGI_CALL,trace5-2
+digipeat: all trace4-3 all swap DIGI_CALL,trace4-2
+digipeat: all trace3-3 all swap DIGI_CALL,trace3-2
+;
+;------------------------------------------------------------------------------
+;
+;  2 Hops
+;
+digipeat: all trace7-2 all swap DIGI_CALL,trace7-1
+digipeat: all trace6-2 all swap DIGI_CALL,trace6-1
+digipeat: all trace5-2 all swap DIGI_CALL,trace5-1
+digipeat: all trace4-2 all swap DIGI_CALL,trace4-1
+digipeat: all trace3-2 all swap DIGI_CALL,trace3-1
+digipeat: all trace2-2 all swap DIGI_CALL,trace2-1
+;
+;------------------------------------------------------------------------------
+;
+;  1 Hop
+;
+digipeat: all trace7-1 all swap2 DIGI_CALL,trace7
+digipeat: all trace6-1 all swap2 DIGI_CALL,trace6
+digipeat: all trace5-1 all swap2 DIGI_CALL,trace5
+digipeat: all trace4-1 all swap2 DIGI_CALL,trace4
+digipeat: all trace3-1 all swap2 DIGI_CALL,trace3
+digipeat: all trace2-1 all swap2 DIGI_CALL,trace2
+digipeat: all trace1-1 all swap2 DIGI_CALL,trace1
+;
+;------------------------------------------------------------------------------
+;
+;  0 Hops, these are not repeated (commented out)!
+;
+;digipeat: all trace7 all
+;digipeat: all trace6 all
+;digipeat: all trace5 all
+;digipeat: all trace4 all
+;digipeat: all trace3 all
+;digipeat: all trace2 all
+;digipeat: all trace1 all
+;digipeat: all trace0 all
+;
+;------------------------------------------------------------------------------
+;
+;  Strange TRACE formats
+;
+digipeat: all trace-7 all swap DIGI_CALL,trace-6
+digipeat: all trace-6 all swap DIGI_CALL,trace-5
+digipeat: all trace-5 all swap DIGI_CALL,trace-4
+digipeat: all trace-4 all swap DIGI_CALL,trace-3
+digipeat: all trace-3 all swap DIGI_CALL,trace-2
+digipeat: all trace-2 all swap DIGI_CALL,trace-1
+digipeat: all trace-1 all swap2 DIGI_CALL,trace
+;
+;------------------------------------------------------------------------------
+;
+;  If a packet "ended" at WIDE or TRACE, pick it up, and add LOCAL and
+;  send it back out.
+;
+digiend: all wide*,trace* 2 add LOCAL
+;
+;------------------------------------------------------------------------------
+;
+;  Handling of destination-SSID based digipeating
+;  ----------------------------------------------
+;
+;  Uses:
+;  digito: <rx port> <to-call> <tx port> <replacement ssid> <...>
+;  digissid: <rx port> <to-call> <tx port> <replacement ssid> <...>
+;  ssid_ignore_prefix: <character>[<character>...]
+;
+;  digito: rules are only executed when there are no digipeaters specified
+;  in the path. For SSID digipeating that will be when the frame was
+;  not repeated before. In these rules the DIGI_CALL is added in this case
+;  and the SSID is decremented. The DIGI_CALL does not have the 'digipeated'
+;  bit set.
+;
+;  digissid: rules are only executed when there are only unused digipeaters
+;  in the path. This will be the case on SSID digipeating after the first
+;  hop has been taken. In these rules the SSID is decremented.
+;
+;  ssid_ignore_prefix: if the payload starts with one of the characters
+;  defined with this rule then the digito: and digissid: rules will be
+;  ignored for the frame. This is for example used to ignore UIview
+;  messages which start with a "~" character.
+;
+;  SSIDs have a meaning:
+;  *-1  will be repeated with ssid 0.
+;  *-2  will be repeated with ssid 1.
+;  *-3  will be repeated with ssid 2.
+;  *-4  will be repeated with ssid 3.
+;  *-5  will be repeated with ssid 4.
+;  *-6  will be repeated with ssid 5.
+;  *-7  will be repeated with ssid 6.
+;
+;  On the first hop DIGI_CALL is added without a '*'.
+;
+;  On the first hop there are no DIGIs in the path, add our DIGI_CALL
+;
+;  Alternative 1, use if surrounding digis also understand SSID digipeating
+;  ------------------------------------------------------------------------
+;
+digito: all *-1 all 0 add DIGI_CALL
+digito: all *-2 all 1 add0 DIGI_CALL
+digito: all *-3 all 2 add0 DIGI_CALL
+digito: all *-4 all 3 add0 DIGI_CALL
+digito: all *-5 all 4 add0 DIGI_CALL
+digito: all *-6 all 5 add0 DIGI_CALL
+digito: all *-7 all 6 add0 DIGI_CALL
+;
+;  On subsequent hops the first digi will have added its call, the
+;  path only contains unused digipeaters. Just decrement the SSID.
+;
+digissid: all *-1 all 0 keep
+digissid: all *-2 all 1 keep0
+digissid: all *-3 all 2 keep0
+digissid: all *-4 all 3 keep0
+digissid: all *-5 all 4 keep0
+digissid: all *-6 all 5 keep0
+digissid: all *-7 all 6 keep0
+;
+;  Alternative 2, use if surrounding digis do not understand SSID digipeating
+;  --------------------------------------------------------------------------
+;  (if you want to use this, comment out the digito: and digissid: rules
+;   of alternative 1 and uncomment the following 7 digito: rules)
+;
+;  On the first hop add the own call and WIDEn_N, where "N" is one lower than
+;  "n" to indicate that one hop is used. The destination SSID is set to zero.
+;
+;digito: all *-1 all 0 add2 DIGI_CALL,WIDE1
+;digito: all *-2 all 0 add DIGI_CALL,WIDE2-1
+;digito: all *-3 all 0 add DIGI_CALL,WIDE3-2
+;digito: all *-4 all 0 add DIGI_CALL,WIDE4-3
+;digito: all *-5 all 0 add DIGI_CALL,WIDE5-4
+;digito: all *-6 all 0 add DIGI_CALL,WIDE6-5
+;digito: all *-7 all 0 add DIGI_CALL,WIDE7-6
+;
+;  On subsequent hops only change the SSID in a WIDEn-N equivaltent. The start
+;  value of "n" is unknown, but we know that at least 2 hops are used (one by
+;  somebody else and one by us). "n" can however never be bigger than 7, so
+;  *-7 is modified to WIDE7-6. The destination SSID is set to zero.
+;
+;digissid: all *-1 all 0 add2 WIDE2
+;digissid: all *-2 all 0 add WIDE3-1
+;digissid: all *-3 all 0 add WIDE4-2
+;digissid: all *-4 all 0 add WIDE5-3
+;digissid: all *-5 all 0 add WIDE6-4
+;digissid: all *-6 all 0 add WIDE7-5
+;digissid: all *-7 all 0 add WIDE7-6
+;
+; SSID directional digipeating
+; ----------------------------
+;
+;  In this example I have omni-directional antennas. This means that
+;  North, South, East and West all go to the same ports.
+;
+;  To make this really work you should change the rules. I cannot supply a
+;  default since this depends on your local situation. For each rule add
+;  a path of about 2 or 3 hops that will work towards the given direction
+;
+;  *-8  will go north-bound. Add a path in north direction to make it work.
+;  *-9  will go south-bound. Add a path in south direction to make it work.
+;  *-10 will go east-bound.  Add a path in east  direction to make it work.
+;  *-11 will go west-bound.  Add a path in west  direction to make it work.
+;
+;  I will give an example for my station in commented form. The default
+;  uses generic calls and will go in every direction if you don't change it.
+;  I have a small antenna, so all data is routed first through the nearby
+;  WIDE first.
+;
+;digito: 1 *-8 all 0 add PI1APA,PD0JEY-2,PA3EMS-2
+;digito: 1 *-9 all 0 add PI1APA,PE1ABT-4,PE1SAY-2
+;digito: 1 *-10 all 0 add PI1APA,PE1OWG-2,PA0JWX-2
+;digito: 1 *-11 all 0 add PI1APA,PI1APK,PA1HBL-2
+;
+;  Active default rules using WIDE calls:
+;
+digito: 1 *-8 all 0 add WIDE,WIDE
+digito: 1 *-9 all 0 add WIDE,WIDE
+digito: 1 *-10 all 0 add WIDE,WIDE
+digito: 1 *-11 all 0 add WIDE,WIDE
+;
+;  *-12 will go north-bound same as *-8 but with an additional WIDE.
+;  *-13 will go south-bound same as *-9 but with an additional WIDE.
+;  *-14 will go east-bound  same as *-10 but with an additional WIDE.
+;  *-15 will go west-bound  same as *-11 but with an additional WIDE.
+;
+;  My example should become:
+;
+;digito: 1 *-12 all 0 add PI1APA,PD0JEY-2,PA3EMS-2,WIDE
+;digito: 1 *-13 all 0 add PI1APA,PE1ABT-4,PE1SAY-2,WIDE
+;digito: 1 *-14 all 0 add PI1APA,PE1OWG-2,PA0JWX-2,WIDE
+;digito: 1 *-15 all 0 add PI1APA,PI1APK,PA1HBL-2,WIDE
+;
+;  Active default rules using WIDE calls:
+;
+digito: 1 *-12 all 0 add WIDE,WIDE,WIDE
+digito: 1 *-13 all 0 add WIDE,WIDE,WIDE
+digito: 1 *-14 all 0 add WIDE,WIDE,WIDE
+digito: 1 *-15 all 0 add WIDE,WIDE,WIDE
+;
+;  ssid_ignore_prefix:
+;
+;  This rule is used to ignore UIview messages which start with a "~"
+;  character. UIview messages use as destination address the address
+;  of the other station. These addresses can have an SSID and are
+;  still using PID F0 for normal AX.25 messages. We should avoid doing
+;  SSID digipeating on those packets which changes the destination SSID.
+;  The data of all UIview messages start with a "~", so if the payload data
+;  starts with a "~" no SSID digipeating will be done.
+;
+ssid_ignore_prefix: ~
+;
+;------------------------------------------------------------------------------
+;
+;  Digipeat frames with these TO calls and no existing digipeaters.
+;  Pick up these packets if they didn't have any "path"
+;
+;  On AP check explicitly for SSID 0
+;
+digito: 1 AP*-0,WX,CQ all 0 add DIGI_CALL,WIDE
+digito: 2 AP*-0,WX,CQ 2 0 add DIGI_CALL
+;
+;------------------------------------------------------------------------------
+;
+;  Preemptive digipeating. If one of the unused digis matches the call
+;  in the "preempt:" rule, and there are other unused digipeater
+;  before this call then the digipeater will remove all unused digipeater
+;  calls up to but not including the matching call. The modified packet
+;  header will then be digipeated by applying matching "digipeat:" rules.
+;
+preempt: all DIGI_CALL
+;
+;  If the next call appears in a preempted digipeater list and is not
+;  already used then retain the call by relocating the call after the
+;  preempted call.
+;
+;preempt_keep: PA*,PB*,PC*,PD*,PE*,PF*,PG*,PH*,PI*
+preempt_keep: *
+;
+;  some calls should never be relocated, even though they match with
+;  "preempt_keep:". These are named in here.
+;
+preempt_never_keep: RELAY*,WIDE*,TRACE*
+;
+;------------------------------------------------------------------------------
+;
+;  Local ports. Digipeated packets to a local port will not have
+;  "unused" digipeaters in the path (they are stripped off); i.e.
+;  the packets will not be repeated by other digipeaters anymore
+;  (unless they have a digiend: rule that picks the packets up
+;  again). Only packets that are send directly to the digipeater
+;  (did not pass another digipeater before reception) will be sent
+;  out as a normal digipeated frame using the same digipeater path
+;  manipulations as also used for non-local ports). This feature
+;  can be used to fill-in black spots in the network without causing
+;  unneeded traffic in neighboring digipeaters.
+;
+;local: 2
+;
+;------------------------------------------------------------------------------
+;
+;  How many calls kept in the digipeater software.
+;
+;  The "size_heard_list" defines how many calls are remembered
+;  for the "mheard" and "dx" queries. If it is too small then
+;  the DX function cannot give accurate long-term reports.
+;
+size_heard_list: 150
+;
+;  The "size_heard_show" defines how many calls are shown on
+;  the "mheard <port>" query. There are 4 calls shown per line.
+;  This means that with 40 calls on the same port you get up to
+;  10 lines with responses. If not defined, "size_heard_show:"
+;  is the same as "size_heard_list".
+;
+size_heard_show: 40
+;
+;------------------------------------------------------------------------------
+;
+;  How many seconds old data transmissions are remembered to prevent loops.
+;  Use '0' to switch-off (then DIGI_NED only looks for its DIGI_CALL in the
+;  digi-list)
+;
+keep_time: 300
+;
+;  If the received data starts with a particular character then we can opt
+;  to use a shorter keep_time. The first character in UI data specifies
+;  the kind of data, with this we can give certain type of data a short
+;  time to repeat. This is especially useful for messages and acks on
+;  messages which are repeated frequently at the start. Note that you can
+;  not use <space> as data prefix. Use 0 to forget immediately.
+;
+short_keep_time: 10
+data_prefix: :?~
+;
+;------------------------------------------------------------------------------
+;
+;  This command specifies the file from which message query/answers are
+;  read. If no path is given DIGI_NED looks for the file in the same place
+;  as the executable. If a path is given DIGI_NED will look there; i.e.
+;  ".\digi_ned.mes" will direct DIGI_NED to the current directory,
+;  "\tmp\digi_ned.mes" will make DIGI_NED to look for the file in the
+;  "tmp" directory. Forward or backward slashes are interpreted correctly
+;  for the platform you run on (DOS or Linux).
+;
+message_file: digi_ned.mes
+;
+;  How many seconds old message receptions are remembered to prevent loops.
+;  Use '0' to switch-off (then DIGI_NED only looks for its DIGI_CALL in the
+;  digi-list)
+;
+message_keep_time: 900
+;
+;  Message path contains the digis appended to messages transmitted by
+;  DIGI_NED. This path has to be defined per port, more definitions for
+;  one port are possible. Also "message_path: 1" works, no digipeater
+;  definitions are used in that case. Messages are never transmitted
+;  on ports which do not have any matching "message_path:" definitions.
+;
+message_path: all WIDE
+;message_path: 2 PI1APA
+;
+;  If the number of digipeaters marked as "used" in the digipeater
+;  list exceeds the next specified value then the digipeater ignores
+;  the message from the user. Reason is that the answer will never
+;  get back anyway with the above specified "message_path:" settings.
+;  It would only cause extra QRM to attempt it.
+;
+max_msg_hops: 2
+;
+;------------------------------------------------------------------------------
+;
+;  DX function handling.
+;  ---------------------
+;
+;  Define the position of the digipeater, from this point distance and
+;  bearing calculation on directly received stations takes place.
+;  First latitude, then longitude. The format shall be the same way
+;  as used in the APRS uncompressed position format, otherwise it will
+;  not be accepted by the program.
+;
+;digi_pos: 5213.61N 00600.00E
+;
+;  The digipeater position can also be taken from the first line of a beacon
+;  file, now you only have to change the beacon file. Since this is less
+;  prone to errors it is the default now.
+;
+digi_pos_file: digibcon.ini
+;
+;  Define what to return on a DX query. "all" returns the best DX of
+;  all entries of a given port, "1" returns the best DX of the last hour,
+;  etc.
+;
+dx_times: all,24,1
+;
+;  Dx metric defines the presentation of distances and the threshold
+;  for distances in the dx_level: rule. Options are "km" for kilometers,
+;  "mi" for statue miles and "nm" for nautical miles. Default is "km".
+;
+dx_metric: km
+;
+;  The next command defines when we report a station as DX. The first
+;  parameter is the port for which this is true (DX on 6m a is something
+;  different then DX on 2m, and DX on 70cm is different again). All applies to
+;  all ports but a single digit or comma separated digits are also possible.
+;  The second parameter is a threshold, in this example everything below
+;  25 km is not DX. Everything above 2000 is also thrown away as distances
+;  above 2000 are highly unlikely on 2m and 70cm. This will block a majority
+;  of bogus positions (note that the position 0000.00N/S 00000.00E/W is
+;  always blocked). The last parameter it the time in hours to look
+;  back. When a station is received which is the "best DX" for the last
+;  hour (1) and is further away then the threshold (100 km) then it is
+;  reported. The unit of distance is determined by "dx_metric:", default
+;  is "km".
+;
+dx_level: all 25-2000 1
+;
+;  DX path contains the destination call and digis to be appended to
+;  DX messages transmitted by DIGI_NED. This path has to be defined
+;  per port, more definitions for one port are possible. Also
+;  "dx_path: 1 DX" works, no digipeater definitions are used in that case.
+;  DX messages are never transmitted on ports which do not have any
+;  matching "dx_path:" definition.
+;
+dx_path: all DX,WIDE
+;
+;  DX portname contains the name of the port to be reported with the DX
+;  reports and queries. It contains the port number and the rest of the
+;  string is the name. Beware - the name is limited in size, otherwise
+;  it is truncated. Up to 8 characters appear on a TH-D7 screen and
+;  are transmitted on air. The commented examples show some alternatives
+;  to the defaults I used.
+;
+;dx_portname: 1 2 mtr
+;dx_portname: 2 70 cm
+;
+;dx_portname: 1 VHF
+;dx_portname: 2 UHF
+;
+;  Its common for DX clusters to use the frequency in kHz, so use that
+;
+;dx_portname: 1 144800.0
+;
+;dx_portname: 2 430512.5
+;
+;------------------------------------------------------------------------------
+;
+;  Satellite Tracking Attributes
+;  -----------------------------
+;
+;  The following attributes are used by the satellite-tracking module of
+;  DIGI_NED. Make sure that digi_pos is defined either in the DX function
+;  handling portion of this file or below. Alternatively, you can also
+;  specify the position in the digibcon.ini file, but don't forget to
+;  include the "digi_pos_file: digibcon.ini"-rule. The latter method is
+;  preferred because then you only have to specify (and change, if
+;  necessary) the position of the digi only once. This position information
+;  together with the other attributes are needed for satellite tracking
+;  calculations.
+;
+;  (commented out, already present above)
+;  Position of the digi...
+;digi_pos: 3256.84N 08001.92W (KG4ECV-10)
+;  ...or specify as:
+;digi_pos_file: digibcon.ini
+;
+;  Altitude of the digi in meters (1 meter is approx. 3.28 feet, not critical).
+digi_altitude: 10
+;
+;  Use local time (1) or UTC for the display of AOS time in objects.
+digi_use_local: 1
+;
+;  UTC offset for the digi (EST = -5). Make sure to correct this for
+;  daylight savings.
+;
+;  This value is only used when there is no timezone information in the
+;  system for DOS. Linux will either use by Linux's zoneinfo or by
+;  interpreting the TZ environment variable. In DOS the TZ variable can
+;  also be used. You can create one in DOS using the format:
+;
+;  set TZ=EST+5EDT
+;
+;  Where in this case UTC is 5 hours ahead of EST (watch the sign!) and
+;  Daylight saving is used. Note that in Europe the Daylight saving rules
+;  are different than the USA so it may not work. In that case just use
+;  TZ=EST+5 or when in Daylight saving TZ=EST+4.
+;
+;  When in a DOS environment the TZ  is not set then the next value will
+;  be used. Internally a TZ string will be used in the form:
+;  TZ=UTC-<digi_utc_offsert>, in my case TZ=UTC-2 during the summer. For
+;  the EST example the digi_utc_offset should be -5 and the internally
+;  generated TZ string will be UTC+5.
+;
+digi_utc_offset: +1
+;
+;  Time (in minutes) between transmission of satellite objects when satellite.
+;  is in range.
+sat_in_range_interval: 1
+;
+;  Time (in minutes) between transmission of satellite objects when satellite
+;  is out of range.
+sat_out_of_range_interval: 10
+;
+;  Duration time (in minutes) of tracking.
+track_duration: 105
+;
+;  Name of the satellite information database.
+satellite_file: digi_ned.sat
+;
+;  Name of the TLE file to update the satellite information database from.
+update_tle_file: digi_ned.tle
+;
+;  Sat Object format, Satellites can be transmitted the following way
+;
+;  The number specifies the format of the sat-object:
+;  0) Show plain as "AO40    E" (where E is for the Elevation column)
+;
+;  1) Show plain as "AO40 126E" (where 123 is the epoch of the used kepler
+;                                data and E is for the Elevation column)
+;  2) Show plain as "AO40 0805" (where 0805 is the ddmm date of the used
+;                                kepler data)
+;  3) Show plain as "AO40 0508" (where 0508 is the mmdd date of the used
+;                                kepler data)
+;  Default is 0.
+;
+sat_obj_format: 2
+;
+;------------------------------------------------------------------------------
+;
+;  WX support (and other applications you may think off..)
+;  -------------------------------------------------------
+;
+;  Example configuration for a WX station using many sensors connected
+;  to a multiplexing interface on the LPT port. For more information
+;  about interfacing to the LPT port look at the DIGI_NED web-site which
+;  can be reached via http://www.qsl.net/digi_ned. Also look at the links
+;  on this site. There are projects by other hams which can now be supported
+;  through this interface. Sole purpose is to stimulate home made equipment.
+;  Building a weather station and connect it to APRS is very rewarding!
+;
+;  Note: don't take a too narrow view! This functionality can also be
+;  used to transmit information from direction finders, formatted
+;  telemetry data etc, it doesn't have to be WX at all!
+;
+;  Having said this, here is the example!
+;
+;  Assume a telemtry module on LPT1 with 8 multiplexed ports
+;
+;  lpt1 port 0:
+;  lpt1 port 1: temperature in centigrade
+;  lpt1 port 2: course in steps of 30 degrees (0 = 0, 1 = 30, 2 = 60 etc)
+;  lpt1 port 3: encounting rainfall value in mm
+;  lpt1 port 4: humidity in steps of 10%
+;  lpt1 port 5: barometric pressure, in hPa offset 900 (100 = 1000 hPa)
+;  lpt1 port 6:
+;  lpt1 port 7: wind speed in beaufort
+;
+;  course from lpt1 port 2, multiply by 30 to get degrees
+;wx_var: c,val,lpt1_8/2,0,30.0,0
+;
+;  speed from lpt1 port 7, average over last min, convert from beaufort to mph
+;  aproximation beaufort to knots: 0.3*(x*x)+2.2*x+0
+;  multiply with 0.8689762 to get from knots to mph
+;  final formula beaufort to mph: 0.2607*(x*x)+1.9117*x+0
+; wx_var: s,avg1,lpt1_8/7,0.2607,1.9117,0
+;
+;  gust from lpt1 port 7, maximum over 5 min, convert from beaufort to mph
+;wx_var: g,max5,lpt1_8/7,0.2607,1.9117,0
+;
+;  temperature from lpt1 port 1, convert from centigrade to fahrenheit
+;wx_var: t,val,lpt1_8/1,0,1.8,32
+;
+;  rainfall last hour from lpt1 port 3, convert from mm to 1/100 of inch
+;wx_var: r,sum60,lpt1_8/3,0,3.937,0
+;
+;  rainfall last 24 hours from lpt1 port 3, convert from mm to 1/100 of inch
+;wx_var: p,sum1440,lpt1_8/3,0,3.937,0
+;
+;  rainfall since midnight from lpt1 port 3, convert from mm to 1/100 of inch
+;wx_var: P,sum,lpt1_8/3,0,3.937,0
+;
+;  humidity from lpt1 port 4, multiply by 10 to get percentage
+;wx_var: h,val,lpt1_8/4,0,10.0,0
+;
+;  barometric pressure from lpt1 port 5, 10ths of hPA: multiply by 10 add 9000
+;wx_var: b,val,lpt1_8/5,0,10.0,9000
+;
+;  raw rain counter, convert mm to 1/100 of inch
+;wx_var: #,val,lpt1_8/3,0,3.937,0
+;
+;  time variable type MDHM in zulu time
+;wx_var: D,mdhm,zulu
+;
+;  Positionless WX string, use in conjunction with a normal position beacon
+;
+;wx: 5 all APRS,WIDE,WIDE
+;_%08Dc%03cs%03sg%03gt%03tr%03rp%03pP%03Ph%02hb%05b#%03#xDned
+;
+;  Example complete WX string (if you use this, shut down the normal beacon,
+;  this WX packet will replace that function!):
+;
+;  time variable type DHM in zulu time
+;wx_var: T,dhm,zulu
+;
+;wx: 5 all APRS,WIDE,WIDE
+;@%06Tz5213.61N/00600.00E_%03c/%03sg%03gt%03tr%03rp%03pP%03Ph%02hb%05b#%03#xDned
+;
+;  Time formats example
+;
+;  Supported formats DHM, HMS, YMD, YDM, DMY, MDY, MDH, MDHM zulu or local time
+;
+;  A number of variables in Zulu time
+;
+;wx_var: T,dhm,zulu
+;wx_var: S,hms,zulu
+;wx_var: Y,ymd,zulu
+;wx_var: W,ydm,zulu
+;wx_var: F,dmy,zulu
+;wx_var: M,mdy,zulu
+;wx_var: O,mdh,zulu
+;wx_var: D,mdhm,zulu
+;
+;  A number of variables in Local time
+;
+;wx_var: U,dhm,local
+;wx_var: R,hms,local
+;wx_var: Z,ymd,local
+;wx_var: X,ydm,local
+;wx_var: E,dmy,local
+;wx_var: N,mdy,local
+;wx_var: Q,mdh,local
+;wx_var: G,mdhm,local
+;
+;wx: 5 all WX,WIDE,WIDE
+;>time: %06Tz (DHM) %06Sz (HMS) %06Yz (YMD) %06Wz (YDM)
+;wx: 5 all WX,WIDE,WIDE
+;>time: %06Fz (DMY) %06Mz (MDY) %06Oz (MDH) %08Dz (MDHM)
+;
+;wx: 5 all WX,WIDE,WIDE
+;>time: %06Ul (DHM) %06Rl (HMS) %06Zl (YMD) %06Xl (YDM)
+;wx: 5 all WX,WIDE,WIDE
+;>time: %06El (DMY) %06Nl (MDY) %06Qz (MDH) %08Gl (MDHM)
+;
+;  By using combinations and restricting the output of a variable other
+;  strings can be build... Example:
+;wx: 5 all WX,WIDE,WIDE
+;>date: %02Y-%02W-20%02F time: %02O:%02T:%02S zulu
+;
+;------------------------------------------------------------------------------
+;
+;  Calls we don't want to repeat. These are also not kept in the MHeard list
+;  and no DX messages are generated for these calls. Optionally you can
+;  specify a port number, only packets from those ports with the specified
+;  calls are blocked. (e.g. block: 1 CALL). When no port is specified then
+;  "all" is assumed to be backwards compatible.
+;
+block: all N0CALL,NOCALL,MYCALL
+;
+;  Here we can block calls that already went through a specific digi,
+;  for example to block mass-distribution of IGate traffic through the
+;  digi. "via_block:" also considers calls in the third-party header.
+;  It only considders the most recent 3rd party header, not recursive
+;  when the embedded packet contains another 3rd party header. It
+;  considers all calls in the 3rd party header including originator
+;  and destination calls. Optionally you can specify a port number, packets
+;  from those ports with the specified calls are blocked and no packets
+;  with the specified call will be send to that port. For example:
+;
+;  via_block: 1 TCPIP
+;
+;  The digipeater doesn't accept packes with TCPIP from port 1 and will not
+;  send any packets with TCPIP to port 1. Port 1 could be a HF port for
+;  example. When no port is specified then "all" is assumed to be backwards
+;  compatible with older versions.
+;
+;via_block: all TCPIP,IGATE
+;
+;  Add usage restrictions for a port, allow_to: and allow_from:. These can
+;  be used if you want to create special setups with cross-band where you
+;  only want to pick up specific packets from one band to another. If not
+;  defined (default) all "from" and "to" calls are allowed (if not blocked).
+;
+;  If allow_to: is defined only calls with a specific destination address
+;  are accepted on this port. This can be use if you only want to pick up
+;  certain packets from a port. For example on port 2 you only want to pick
+;  up packets to MAIL and FBB put out by an FBB BBS. On all other port
+;  there are no restrictions. (Note this line is commented out, it's
+;  just an example.)
+;
+;allow_to: 2 MAIL*,FBB*
+;
+;  If allow_from: is defined only packets from a specific station are
+;  accepted. For example only allow only Dutch stations on port 1 and 2,
+;  on port 1 do not allow non-novice stations (PDxxxx). On all other ports
+;  there are no restrictions. (Note these lines are commented out, it's just
+;  an example.)
+;
+;allow_from: 1,2 PE*,PA*,PI*
+;allow_from: 2 PD*
+;
+;  Calls that are not allowed to query the digipeater. Optionally you can
+;  specify a port number, only queries from those ports with the specified
+;  calls are blocked. (e.g. msg_block: 1 CALL). When no port is specified
+;  then "all" is assumed to be backwards compatible.
+;
+msg_block: all N0CALL,NOCALL,MYCALL
+;
+;------------------------------------------------------------------------------
+;
+;  Kenwood mode.
+;
+;  It appears that at least the TH-D7E can not handle formatted
+;  packets with a total length of more than 195 octets. The
+;  formatting used internally seems to be the same as the monitor
+;  format used by the built-in TNC.
+;
+;  SOURCE>ID,PATH,PATH*,PATH:Hey look at me, this is my long ID<CR>
+;  <--------------------- Max 195 characters --------------------->
+;
+;  This problem applies to at least to UI packets with PID=F0 (normal
+;  packet unproto frames). I've seen on a normal link that the
+;  TH-D7E's APRS function also stops on other packets, but I could
+;  not determine which packet types. Maybe all packets with lengths
+;  above what the TH-D7E can take cause problems. I have no
+;  information if other Kenwood models behave the same way as the
+;  TH-D7E v2.0 does.
+;
+;  Long UI packets are legal to appear on the air. These are for
+;  example FBB unproto packets, ID packets with a long length, APRS
+;  packets with a long third party header or one of the few APRS
+;  packets that do not have a length limit.
+;
+;  There are 3 kenwood_mode settings that have an effect on UI packets
+;  with PID=F0 (normal AX.25 UI frames):
+;
+;  0 = switch off, allow UI frames with size 256
+;  1 = switch on, too long frames are truncated before transmission
+;  2 = switch on, too long frames are not transmitted at all
+;
+;  Default is 1. In almost all cases it is just comment that is too long,
+;  truncating that is no problem. But you can change it if you disagree.
+;
+;  When you choose anything else then 0, then only UI packets with PID=F0
+;  are digipeated (normal AX.25 UI frames) and no other packets like I,
+;  RR, REJ, SABM etc. are digipeated. Also UI packets for NetRom,
+;  IP and ARP are not digipeated when using this "kenwood_mode".
+;  This is done because these packets are usually long and truncating
+;  or not transmitting these packets causes corruption of data.
+;
+kenwood_mode: 1
+;
+;------------------------------------------------------------------------------
+;
+;  There is a new APRS like protocol called Opentrac. It uses PID=77.
+;  DIGI_NED will digipeat those, unless you disable it here. Opentrac
+;  packets are also digipeated when "kenwood_mode:" is other than zero.
+;  The opentrac packets will not be truncated since that would damage the
+;  packet. Set opentrack_enable: to 0 if you do not want to digipeat
+;  opentrac packets (for example because you have another application doing
+;  that) or when opentrac packets causes problems for kenwoods.
+;
+;  There is currently no other specific opentrac support, only rule-based
+;  digipeating. Opentrack envisions new and better ways of digipeating.
+;  Look at http://www.opentrac.org/ to find out more about this project.
+;
+opentrac_enable: 1
+;
+;------------------------------------------------------------------------------
+;
+;  DIGI_OWNER is the owner of the digi, used in the ?owner command and for
+;  the ?exit command on the digi. You can supply multiple calls, separated
+;  by commas. The first defined call is that call which will be reported
+;  as owner when the digi is interrogated. The idea is that the call of
+;  the owner is the call of the person or group that owns the license for
+;  the digipeater so that the responsible person can be contacted in case
+;  there is a problem with the digi. At least one call specification is
+;  mandatory.
+;
+;  You can use this to supply your other calls with SSID or to assign
+;  co-maintainers with the same right to stop the digi to allow remote
+;  maintenance.
+;
+digi_owner: PE1DNN,PE1DNN-7,PE1DNN-9,PE1MEW,PE1LIF
+;
+;------------------------------------------------------------------------------
+;
+;  The enable-exit option permits stopping DIGI_NED remotely.
+;  DIGI_NED will exit with exit-code 2, and with a .bat file this can be
+;  used to restart the digipeater.
+;  The following checking is done:
+;  * The originator shall be the owner-call (SSID is significant!)
+;  * The target address is the DIGI_CALL.
+;  * There shall be no digipeaters (only direct access)
+;  * This feature has to be set to enabled to work
+;
+;  Use 1 to enable, 0 to disable this feature.
+;
+enable_exit: 1
+;
+;------------------------------------------------------------------------------
+;
+;  The digi knows a few remote command that the owner can send to the digi
+;  These are the !ptt command to enable or disable transmission on a port and
+;  the !out command to change signals on the LPT port of the digipeater. With
+;  the following two commands you can disable these features, by default they
+;  are enabled. When enabled the following checking is done before accepting
+;  a command:
+;  * The originator shall be the owner-call (SSID is significant!)
+;  * This feature has to be set to enabled to work
+;
+enable_ptt_command: 1
+enable_out_command: 1
+;
+;------------------------------------------------------------------------------
+;
+;  To be able to check the output of the program, the output can be logged to
+;  a file. All the output will be put into the file. Be careful not to
+;  use this when running normally, the file will grow until the filesystem
+;  is full. It is meant for testing only! When no name is specified nothing
+;  is logged. At the start of the program an existing log is overwritten.
+;
+;  When no path is specified then the logfile will be created in the same
+;  directory as where the program itself is stored.
+;
+;logfile: digi_ned.log
+;
+;  In the tnclogfile recieved and transmitted messages are written in the
+;  TNC format, which is also used by many, many other programs.
+;
+;tnclogfile: digi_ned.tnc
+;
+;------------------------------------------------------------------------------
+;
+;  DIGI_CALL of the digi and the destination to which the DIGI_NED digi
+;  can send beacons.
+;
+digi_call: PE1DNN-2
+;
+;  New format destination addess:
+;
+;  DIGI_NED now uses destination address APNDxx. The prefix APN can be
+;  shared with other intelligent digipeaters. The prefix APND is reserved
+;  for DIGI_NED now in coordination with the APRS protocol workgroup.
+;
+;  The DIGI_NED version number is now compressed in 2 alphanumeric bytes.
+;  For this count base 36 is used to have enough numbers to identifiy
+;  DIGI_NED versions, I.e counting goes:
+;
+;  01,02,...,09,0A,0B,...,0Z,10,11,..,1Z,20,...,etc
+;
+;  where 01 is version 0.0.1, 0Z is version 0.3.5 and 10 is version 0.3.6
+;  etc. It is not as clear as the old numbering, but this leaves space for
+;  other applications using the APN prefix.
+;
+;  Table (for versions 001 to 054 with corresponding base 36 numbers):
+;
+;  001 002 003 004 005 006 007 008 009 010 011 012 013 014 015 016 017 018
+;   01  02  03  04  05  06  07  08  09  0A  0B  0C  0D  0E  0F  0G  0H  0I
+;
+;  019 020 021 022 023 024 025 026 027 028 029 030 031 032 033 034 035 036
+;   0J  0K  0L  0M  0N  0O  0P  0Q  0R  0S  0T  0U  0V  0W  0X  0Y  0Z  10
+; 
+;  037 038 039 040 041 042 043 044 043 046 047 048 049 050 051 052 053 054
+;   11  12  13  14  15  16  17  18  19  1A  1B  1C  1D  1E  1F  1G  1H  1I
+; 
+digi_dest: APND14
+; 
+==========================================================================
+

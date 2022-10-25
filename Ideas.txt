@@ -1,0 +1,43 @@
+This file is to list and remember the existing ideas for development. Some
+day some of them will be implemented. Some sooner, some later...
+
+Just started this, probably forgot 50% or more but will add it when it pops
+up again...
+
+- Add member feature. Members may send some commands
+- Hold-of digipeating to see if another digipeater already repeated it.
+  Usefull when you have 2 digis close together, a main and a backup digi
+  for the packets that the main digi missed.
+- Add color output
+- Selective logfile, do not log everything - only APRS data
+- Remote control of a receiver for remote direction finder
+- Add different MAC layer driver for FlexNet
+- Extendable user add-on telemetry sources using TSR's
+- Statistics for nr of repeated frames, number of dupes, poweruser
+- Weedout of junk BLN postings (allow 1 BLN per user for example...)
+- APRS frame integrity checking (add Ian's decoder to detect faulty
+  packets).
+- Make function keys in DOS work, attach user defined commands to them
+  (make F1 work as help)
+- Make a kind of bulletin mechanism. Somebody sends a message to the digi
+  for another station. The message is queued in the digi. As soon as
+  the other station is heard the message is forwarded to him. It will
+  this way act as a primitive mailbox.
+- Add DXPlot function, have your DX station plotted on the map
+- Add trimX operation, keep arbitrary number of digipeaters and replace
+  the rest.
+- Telemetry transmission when the input changes. For analog signals
+  add thresholds.
+- Some replies to queries are hard-coded in english, it would be nice
+  if someone could change it to another language without changeing the
+  code.
+- Don't send beacons directly after startup but after the interval period
+- Add a command to temporarly add one or more callsigns to the block list
+  or to remotely manage the block list.
+- Add new generic calls LOCAL, REGION, IGATE and WORLD when there is some
+  consensus reached in the discussions on the APRS SIG (at www.tapr.org).
+- Use of different call for each port
+- Add "routing" for messages, only send messages to the port were the user
+  is heard.
+- Add setting to digipeat to port in 3rd party format.
+
